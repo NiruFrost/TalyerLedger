@@ -221,6 +221,8 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
       prepared_by: data.prepared_by || null,
       odometer: data.odometer ?? null,
       currency: data.currency as CurrencyCode,
+      overall_discount_type: data.overall_discount_type || null,
+      overall_discount_value: data.overall_discount_value || 0,
       notes: data.notes || null,
       terms: data.terms || null,
     }

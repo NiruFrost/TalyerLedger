@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Fragment } from 'react'
+import { useState } from 'react'
 import { Plus, Pencil, Trash2, GripVertical } from 'lucide-react'
 import { useLineItems, useDeleteLineItem } from '../hooks/use-line-items'
 import { CategoryTotals } from './category-totals'
@@ -101,67 +101,65 @@ export function LineItemTable({ jobId, currency = 'PHP' }: LineItemTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {groupedItems.map((group) => (
-                <Fragment key={group.value}>
-                  {group.items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {group.label}
-                      </TableCell>
-                      <TableCell className="font-medium">{item.item}</TableCell>
-                      <TableCell className="text-xs">
-                        {item.part_number || '-'}
-                      </TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell>{item.unit}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        {formatCurrency(item.unit_price, currency)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-medium">
-                        {formatCurrency(item.line_total, currency)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setEditingItem(item)}
-                          >
-                            <Pencil className="h-3 w-3" />
-                            <span className="sr-only">Edit</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500"
-                            onClick={() => setDeleteId(item.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow className="bg-muted/50">
-                    <TableCell colSpan={7} className="text-right text-sm font-medium">
-                      {group.label} Total
+              {groupedItems.flatMap((group) => [
+                ...group.items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {group.label}
+                    </TableCell>
+                    <TableCell className="font-medium">{item.item}</TableCell>
+                    <TableCell className="text-xs">
+                      {item.part_number || '-'}
+                    </TableCell>
+                    <TableCell className="text-right">{item.quantity}</TableCell>
+                    <TableCell>{item.unit}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatCurrency(item.unit_price, currency)}
                     </TableCell>
                     <TableCell className="text-right font-mono font-medium">
-                      {formatCurrency(
-                        group.items.reduce((sum, i) => sum + i.line_total, 0),
-                        currency
-                      )}
+                      {formatCurrency(item.line_total, currency)}
                     </TableCell>
-                    <TableCell />
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => setEditingItem(item)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-500"
+                          onClick={() => setDeleteId(item.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </Fragment>
-              ))}
-              <TableRow className="font-semibold">
+                )),
+                <TableRow key={`${group.value}-total`} className="bg-muted/50">
+                  <TableCell colSpan={7} className="text-right text-sm font-medium">
+                    {group.label} Total
+                  </TableCell>
+                  <TableCell className="text-right font-mono font-medium">
+                    {formatCurrency(
+                      group.items.reduce((sum, i) => sum + i.line_total, 0),
+                      currency
+                    )}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>,
+              ])}
+              <TableRow key="grand-total" className="font-semibold">
                 <TableCell colSpan={7} className="text-right">
                   Grand Total
                 </TableCell>

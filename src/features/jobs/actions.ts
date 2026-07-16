@@ -49,11 +49,9 @@ export async function createJob(data: JobInsert): Promise<Job> {
 
   const estimate_no = generateEstimateNumber(count ?? 0)
 
-  const { overall_discount_type, overall_discount_value, ...dbData } = data
-
   const { data: newJob, error } = await supabase
     .from('jobs')
-    .insert({ ...dbData, estimate_no })
+    .insert({ ...data, estimate_no })
     .select('*, vehicle:vehicles(*), customer:customers(*)')
     .single()
   if (error) throw error
@@ -62,10 +60,9 @@ export async function createJob(data: JobInsert): Promise<Job> {
 
 export async function updateJob(id: string, data: JobUpdate): Promise<Job> {
   const supabase = createClient()
-  const { overall_discount_type, overall_discount_value, ...dbData } = data
   const { data: updatedJob, error } = await supabase
     .from('jobs')
-    .update(dbData)
+    .update(data)
     .eq('id', id)
     .select('*, vehicle:vehicles(*), customer:customers(*)')
     .single()
