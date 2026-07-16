@@ -2,18 +2,14 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { useJob } from '@/features/jobs/hooks/use-jobs'
+import { useShopSettings } from '@/features/settings/hooks/use-settings'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 
-const PDFViewer = dynamic(
-  () => import('@react-pdf/renderer').then((mod) => mod.PDFViewer),
-  { ssr: false }
-)
-
-const InvoicePDF = dynamic(
-  () => import('@/components/pdf/invoice-pdf').then((mod) => mod.default),
+const PdfPreview = dynamic(
+  () => import('@/components/pdf/pdf-preview'),
   { ssr: false }
 )
 
@@ -22,6 +18,7 @@ export default function JobPdfPage() {
   const router = useRouter()
   const id = params.id as string
   const { data: job, isLoading, error } = useJob(id)
+  const { data: shopSettings } = useShopSettings()
 
   if (isLoading) {
     return (
@@ -46,14 +43,6 @@ export default function JobPdfPage() {
     )
   }
 
-  if (typeof window === 'undefined') {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-12rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -67,9 +56,7 @@ export default function JobPdfPage() {
           </div>
         </div>
       </div>
-      <PDFViewer style={{ width: '100%', height: 'calc(100vh - 12rem)' }}>
-        <InvoicePDF job={job} />
-      </PDFViewer>
+      <PdfPreview job={job} shopSettings={shopSettings} />
     </div>
   )
 }

@@ -20,6 +20,7 @@ export interface Customer {
   created_by: string | null
   updated_by: string | null
   deleted_at: string | null
+  vehicles?: { count: number }[]
 }
 
 export interface CustomerInsert {

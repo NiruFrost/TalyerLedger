@@ -8,6 +8,7 @@ import {
   createJob,
   updateJob,
   deleteJob,
+  copyJob,
 } from '../actions'
 import type { JobInsert, JobUpdate } from '@/lib/types'
 
@@ -65,6 +66,18 @@ export function useDeleteJob() {
     mutationFn: (id: string) => deleteJob(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
+    },
+  })
+}
+
+export function useCopyJob() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (sourceId: string) => copyJob(sourceId),
+    onSuccess: (newJob) => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.invalidateQueries({ queryKey: ['jobs', newJob.id] })
     },
   })
 }

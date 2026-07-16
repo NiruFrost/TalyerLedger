@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Sidebar from './sidebar'
 import Header from './header'
 
@@ -12,8 +12,13 @@ interface DashboardShellProps {
 export default function DashboardShell({ title, children }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header title={title} onMenuClick={() => setSidebarOpen(true)} />

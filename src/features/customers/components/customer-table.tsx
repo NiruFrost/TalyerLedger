@@ -96,7 +96,7 @@ export function CustomerTable({ onEdit }: CustomerTableProps) {
               </TableCell>
               <TableCell>{customer.email || '-'}</TableCell>
               <TableCell>{customer.phone || '-'}</TableCell>
-              <TableCell>-</TableCell>
+              <TableCell>{customer.vehicles?.[0]?.count ?? 0}</TableCell>
               <TableCell>{formatDate(customer.created_at)}</TableCell>
               <TableCell>
                 <DropdownMenu>

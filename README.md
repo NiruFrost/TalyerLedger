@@ -13,7 +13,7 @@ A modern repair estimate, invoice, payment, and vehicle record management system
 | Forms        | React Hook Form, Zod                               |
 | Data Fetching| TanStack Query v5                                  |
 | Backend      | Supabase (PostgreSQL, Auth, Storage, REST API)     |
-| PDF          | @react-pdf/renderer                                |
+| PDF          | @react-pdf/renderer v4                             |
 | Charts       | Recharts                                           |
 | Icons        | Lucide React                                       |
 | Hosting      | Vercel                                             |
@@ -30,7 +30,7 @@ src/
 │   ├── ui/                 # shadcn/ui components
 │   ├── layout/             # Sidebar, header, dashboard shell
 │   ├── forms/              # Shared form components
-│   └── pdf/                # Invoice PDF component
+│   └── pdf/                # Invoice PDF components
 ├── db/
 │   └── migrations/         # SQL migration files
 ├── features/               # Feature-based modules
@@ -39,6 +39,7 @@ src/
 │   ├── vehicles/           # Vehicle CRUD
 │   ├── jobs/               # Job/Estimate CRUD
 │   ├── line-items/         # Line items management
+│   ├── settings/           # Shop settings
 │   ├── photos/             # Photo management (Phase 2)
 │   └── payments/           # Payment ledger (Phase 3)
 ├── hooks/                  # Shared hooks
@@ -61,18 +62,20 @@ src/
 - **line_items** — Individual line items grouped by category
 - **photos** — Repair photos linked to vehicles/jobs/items (Phase 2)
 - **payments** — Payment records (Phase 3)
-- **shop_settings** — Shop configuration (single row)
+- **shop_settings** — Shop configuration (single row, stores shop name/address/contact/logo)
 
 ### Key Design Decisions
 
 - **Customer table separate from Job** — Repeat customers don't require retyping
 - **Service history timeline** — Vehicles link to all their jobs
 - **Inventory flag** — Line items can later link to stocked parts (`is_inventory` column)
-- **Auto estimate numbering** — Format: `EST-YYYY-XXXXX` (e.g., `EST-2026-00001`)
+- **Auto estimate numbering** — Format: `YY-MMDD-XXXXX` (e.g., `26-0716-00001`)
+- **Discount support** — Per-job overall discount and per-line-item discount with type (percentage/fixed)
 - **Audit logs** — `created_at`, `updated_at`, `created_by`, `updated_by` on every table
 - **Soft deletes** — `deleted_at` column instead of permanent removal
 - **Row Level Security** — All tables have RLS policies for authenticated users
 - **Database migrations** — SQL files managed from day one
+- **Unit combobox** — Free-text unit input with predefined dropdown (pc, L, mL, kg, hr, etc.)
 
 ### ERD
 
@@ -89,15 +92,10 @@ line_items 1──* photos
 
 ### Running Migrations
 
-Apply migrations via Supabase SQL editor or by running:
+Apply migrations via Supabase SQL editor in order:
 
-```bash
-# Using Supabase CLI (if configured)
-supabase db push
-
-# Or manually via SQL editor - copy contents of:
-# src/db/migrations/00001_initial_schema.sql
-```
+1. `src/db/migrations/00001_initial_schema.sql` — Core schema
+2. `src/db/migrations/00002_line_items_enhancements.sql` — Discount columns on jobs & line_items
 
 ## Environment Variables
 
@@ -121,7 +119,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 1. Clone the repository
 2. Copy `.env.example` to `.env.local` and fill in values
 3. Install dependencies: `npm install`
-4. Apply database migrations to your Supabase project
+4. Apply database migrations to your Supabase project (in order)
 5. Run the dev server: `npm run dev`
 
 ## Scripts
@@ -136,11 +134,17 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ## Phase 1 Features (Complete)
 
 - [x] Authentication (login/register/logout)
-- [x] Customer CRUD with soft delete
+- [x] Customer CRUD with soft delete, vehicle count display
 - [x] Vehicle CRUD with customer association
-- [x] Job/Estimate CRUD with auto numbering (EST-YYYY-XXXXX)
-- [x] Line items with auto totals and category subtotals
-- [x] Professional invoice PDF generation
+- [x] Job/Estimate CRUD with auto numbering (YY-MMDD-XXXXX)
+- [x] Line items with auto totals, category subtotals, and discount support
+- [x] Duplicate/Copy estimate with line items
+- [x] Professional invoice PDF generation with shop branding
+- [x] One-click PDF download with auto-named file
+- [x] PDF preview page (inline viewer + download)
+- [x] Shop settings management (name, address, contact, logo)
+- [x] Unit combobox with free-text and predefined options
+- [x] Job-level and line-item discount fields
 - [x] Responsive dashboard UI with sidebar
 - [x] Mobile-first layout with collapsible sidebar
 - [x] Skeleton loaders and empty states

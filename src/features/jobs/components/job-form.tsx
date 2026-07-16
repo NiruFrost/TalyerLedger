@@ -11,7 +11,7 @@ import { syncLineItems } from '@/features/line-items/actions'
 import { getPaymentsTotal } from '@/features/jobs/actions'
 import { useCustomers } from '@/features/customers/hooks/use-customers'
 import { useVehicles } from '@/features/vehicles/hooks/use-vehicles'
-import { JOB_STATUSES, CURRENCIES, LINE_ITEM_CATEGORIES, INSTALLATION_STATUSES, UNITS } from '@/lib/constants'
+import { JOB_STATUSES, CURRENCIES, LINE_ITEM_CATEGORIES, INSTALLATION_STATUSES } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { UnitCombobox } from '@/components/ui/unit-combobox'
 import { Separator } from '@/components/ui/separator'
 import type { Job, JobStatus, CurrencyCode, LineItemCategory, InstallationStatus, DiscountType } from '@/lib/types'
 
@@ -221,7 +222,7 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
       prepared_by: data.prepared_by || null,
       odometer: data.odometer ?? null,
       currency: data.currency as CurrencyCode,
-      overall_discount_type: data.overall_discount_type || null,
+      overall_discount_type: (data.overall_discount_type || null) as DiscountType | null,
       overall_discount_value: data.overall_discount_value || 0,
       notes: data.notes || null,
       terms: data.terms || null,
@@ -236,6 +237,8 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
       quantity: li.quantity,
       unit: li.unit,
       unit_price: li.unit_price,
+      discount_type: li.discount_type || null,
+      discount_value: li.discount_value || 0,
       installation_status: li.installation_status || null,
       notes: li.notes || null,
       sort_order: li.sort_order,
@@ -491,23 +494,11 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
                           />
                         </TableCell>
                         <TableCell>
-                          <Select
+                          <UnitCombobox
                             value={form.watch(`line_items.${index}.unit`)}
-                            onValueChange={(value) =>
-                              setValue(`line_items.${index}.unit`, value)
-                            }
-                          >
-                            <SelectTrigger className="h-8 text-xs w-16">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {UNITS.map((u) => (
-                                <SelectItem key={u} value={u}>
-                                  {u}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            onChange={(value) => setValue(`line_items.${index}.unit`, value)}
+                            className="w-20"
+                          />
                         </TableCell>
                         <TableCell>
                           <Input

@@ -35,11 +35,11 @@ interface InvoicePDFProps {
     }>
   }
   shopSettings?: {
-    shop_name?: string
-    address?: string
-    contact_number?: string
-    email?: string
-    logo_url?: string
+    shop_name?: string | null
+    address?: string | null
+    contact_number?: string | null
+    email?: string | null
+    logo_url?: string | null
   }
 }
 
@@ -538,7 +538,7 @@ const InvoicePDF = ({ job, shopSettings }: InvoicePDFProps) => {
         <View style={styles.signatureRow}>
           <View>
             <View style={styles.signatureLine} />
-            <Text style={styles.signatureLabel}>Prepared By</Text>
+            <Text style={styles.signatureLabel}>Approved By</Text>
           </View>
           <View>
             <View style={styles.signatureLine} />
@@ -546,15 +546,8 @@ const InvoicePDF = ({ job, shopSettings }: InvoicePDFProps) => {
           </View>
         </View>
 
-        <Text style={styles.footerNotice}>This is a computer-generated document.</Text>
-
         <View style={styles.pageFooter}>
           <Text style={styles.pageNumber}>{shopName}</Text>
-          <Text style={styles.pageNumber}>
-            Page{' '}
-            <Text render={({ pageNumber }: { pageNumber: number }) => pageNumber.toString()} /> of{' '}
-            <Text render={({ totalPages }: { totalPages: number }) => totalPages.toString()} />
-          </Text>
         </View>
       </Page>
     </Document>

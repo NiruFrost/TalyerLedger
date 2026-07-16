@@ -18,8 +18,11 @@ export function formatDate(date: string | Date, fmt: string = 'MMM dd, yyyy'): s
 }
 
 export function generateEstimateNumber(currentCount: number): string {
-  const year = new Date().getFullYear()
-  return `EST-${year}-${String(currentCount + 1).padStart(5, '0')}`
+  const now = new Date()
+  const yy = String(now.getFullYear()).slice(-2)
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  return `${yy}-${mm}${dd}-${String(currentCount + 1).padStart(5, '0')}`
 }
 
 export function calculateLineTotal(quantity: number, unitPrice: number): number {

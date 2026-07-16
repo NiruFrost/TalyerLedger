@@ -5,11 +5,12 @@ export async function getCustomers(): Promise<Customer[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('customers')
-    .select('*')
+    .select('*, vehicles:vehicles(count)')
     .is('deleted_at', null)
+    .is('vehicles.deleted_at', null)
     .order('name')
   if (error) throw error
-  return data
+  return data as unknown as Customer[]
 }
 
 export async function getCustomerById(id: string): Promise<Customer | null> {

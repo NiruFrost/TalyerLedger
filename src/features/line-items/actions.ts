@@ -78,6 +78,8 @@ export async function syncLineItems(
     quantity: number
     unit: string
     unit_price: number
+    discount_type?: string | null
+    discount_value?: number
     installation_status?: string | null
     notes?: string | null
     sort_order: number
@@ -115,6 +117,8 @@ export async function syncLineItems(
       unit: item.unit,
       unit_price: item.unit_price,
       line_total: lineTotal,
+      discount_type: item.discount_type || null,
+      discount_value: item.discount_value || 0,
       installation_status: item.installation_status || null,
       notes: item.notes || null,
       sort_order: item.sort_order,

@@ -38,7 +38,7 @@ export const CURRENCIES = [
   { value: 'EUR', label: '€ EUR', symbol: '€' },
 ] as const
 
-export const UNITS = ['pc', 'pcs', 'L', 'ml', 'hr', 'set', 'pair', 'box', 'can', 'bottle', 'kg', 'meter', 'day', 'service'] as const
+export const UNITS = ['pc', 'pcs', 'L', 'mL', 'gal', 'qt', 'oz', 'kg', 'g', 'hr', 'set', 'pair', 'box', 'can', 'bottle', 'meter', 'day', 'service'] as const
 
 export const PHOTO_TYPES = [
   { value: 'before', label: 'Before' },
@@ -48,8 +48,7 @@ export const PHOTO_TYPES = [
   { value: 'odometer', label: 'Odometer' },
 ] as const
 
-export const ESTIMATE_NO_PREFIX = 'EST'
-export const ESTIMATE_NO_PATTERN = `${ESTIMATE_NO_PREFIX}-YYYY-XXXXX`
+export const ESTIMATE_NO_PATTERN = 'YY-MMDD-XXXXX'
 
 export const SITE_NAME = 'TalyerLedger'
 export const SITE_DESCRIPTION = 'Repair estimate, invoice, and vehicle record management system'

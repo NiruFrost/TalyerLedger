@@ -1,14 +1,21 @@
 'use client'
 
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Pencil, Download, FileText } from 'lucide-react'
-import { useJob } from '@/features/jobs/hooks/use-jobs'
+import { ArrowLeft, Pencil, Copy, FileText } from 'lucide-react'
+import { useJob, useCopyJob } from '@/features/jobs/hooks/use-jobs'
 import { useUpdateJob } from '@/features/jobs/hooks/use-jobs'
+import { useShopSettings } from '@/features/settings/hooks/use-settings'
 import { JobStatusBadge } from '@/features/jobs/components/job-status-badge'
 import { LineItemTable } from '@/features/line-items/components/line-item-table'
-import { CategoryTotals } from '@/features/line-items/components/category-totals'
+
 import { Skeleton } from '@/components/ui/skeleton'
+
+const DownloadPdfButton = dynamic(
+  () => import('@/components/pdf/download-pdf-button'),
+  { ssr: false }
+)
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -24,6 +31,8 @@ export default function JobDetailPage() {
   const id = params.id as string
   const { data: job, isLoading, error } = useJob(id)
   const updateJob = useUpdateJob()
+  const copyJob = useCopyJob()
+  const { data: shopSettings } = useShopSettings()
 
   if (isLoading) {
     return <JobDetailSkeleton />
@@ -39,8 +48,6 @@ export default function JobDetailPage() {
       </div>
     )
   }
-
-  const lineItems = job.line_items ?? []
 
   async function handleStatusChange(status: string) {
     await updateJob.mutateAsync({ id, data: { status: status as JobStatus } })
@@ -74,16 +81,27 @@ export default function JobDetailPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                const newJob = await copyJob.mutateAsync(id)
+                router.push(`/jobs/${newJob.id}`)
+              } catch {
+                // error toast handled by mutation
+              }
+            }}
+            disabled={copyJob.isPending}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            {copyJob.isPending ? 'Copying...' : 'Make a Copy'}
+          </Button>
           <Button asChild variant="outline">
             <Link href={`/jobs/${id}/edit`}>
               <Pencil className="mr-2 h-4 w-4" /> Edit
             </Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link href={`/jobs/${id}/pdf`}>
-              <Download className="mr-2 h-4 w-4" /> PDF
-            </Link>
-          </Button>
+          <DownloadPdfButton job={job} shopSettings={shopSettings} />
         </div>
       </div>
 
@@ -174,16 +192,8 @@ export default function JobDetailPage() {
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
         </TabsList>
-        <TabsContent value="line-items" className="space-y-4">
+          <TabsContent value="line-items" className="space-y-4">
           <LineItemTable jobId={id} currency={job.currency} />
-          <Separator />
-          <div className="flex justify-end">
-            <Card className="w-72">
-              <CardContent className="pt-6">
-                <CategoryTotals lineItems={lineItems} currency={job.currency} />
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
         <TabsContent value="photos">
           <Card>

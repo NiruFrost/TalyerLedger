@@ -4,9 +4,10 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { lineItemFormSchema, type LineItemFormValues } from '../schemas'
 import { useCreateLineItem, useUpdateLineItem } from '../hooks/use-line-items'
-import { LINE_ITEM_CATEGORIES, UNITS } from '@/lib/constants'
+import { LINE_ITEM_CATEGORIES } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { UnitCombobox } from '@/components/ui/unit-combobox'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -133,21 +134,10 @@ export function LineItemForm({ jobId, defaultValues, onSuccess, onCancel }: Line
 
         <div className="space-y-2">
           <Label htmlFor="unit">Unit *</Label>
-          <Select
+          <UnitCombobox
             value={watch('unit')}
-            onValueChange={(value) => setValue('unit', value as LineItemFormValues['unit'])}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {UNITS.map((unit) => (
-                <SelectItem key={unit} value={unit}>
-                  {unit}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(value) => setValue('unit', value)}
+          />
         </div>
 
         <div className="space-y-2">
