@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { LINE_ITEM_CATEGORIES, UNITS } from '@/lib/constants'
+import { LINE_ITEM_CATEGORIES } from '@/lib/constants'
 
 export const lineItemFormSchema = z.object({
   id: z.string().optional(),

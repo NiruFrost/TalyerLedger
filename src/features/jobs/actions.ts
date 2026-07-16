@@ -43,10 +43,12 @@ export async function getJobsByVehicle(vehicleId: string): Promise<Job[]> {
 export async function createJob(data: JobInsert): Promise<Job> {
   const supabase = createClient()
 
+  const yearStart = `${new Date().getFullYear()}-01-01`
   const { count, error: countError } = await supabase
     .from('jobs')
     .select('*', { count: 'exact', head: true })
     .is('deleted_at', null)
+    .gte('created_at', yearStart)
   if (countError) throw countError
 
   const estimate_no = generateEstimateNumber(count ?? 0)
@@ -92,10 +94,12 @@ export async function copyJob(sourceId: string): Promise<Job> {
     .single()
   if (fetchErr) throw fetchErr
 
+  const yearStart = `${new Date().getFullYear()}-01-01`
   const { count, error: countError } = await supabase
     .from('jobs')
     .select('*', { count: 'exact', head: true })
     .is('deleted_at', null)
+    .gte('created_at', yearStart)
   if (countError) throw countError
 
   const estimate_no = generateEstimateNumber(count ?? 0)

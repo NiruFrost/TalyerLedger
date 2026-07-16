@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { UnitCombobox } from '@/components/ui/unit-combobox'
 import { Separator } from '@/components/ui/separator'
-import type { Job, JobStatus, CurrencyCode, LineItemCategory, InstallationStatus, DiscountType } from '@/lib/types'
+import type { Job, JobStatus, CurrencyCode, LineItemCategory, DiscountType } from '@/lib/types'
 
 interface JobFormProps {
   defaultValues?: Partial<Job>
@@ -173,7 +173,7 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
       categoryTotalsMap[cat] = (categoryTotalsMap[cat] || 0) + item.net
     })
     const categoryTotals = Object.entries(categoryTotalsMap)
-      .filter(([_, total]) => total > 0)
+      .filter((entry): entry is [string, number] => entry[1] > 0)
       .map(([category, total]) => ({ category, total }))
 
     const grandSubtotal = perItem.reduce((sum, item) => sum + item.net, 0)

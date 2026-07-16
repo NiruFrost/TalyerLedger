@@ -6,7 +6,7 @@ import { useJob } from '@/features/jobs/hooks/use-jobs'
 import { JobForm } from '@/features/jobs/components/job-form'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 
 export default function EditJobPage() {

@@ -169,7 +169,9 @@ export interface Photo {
   file_size: number | null
   mime_type: string | null
   created_at: string
+  updated_at: string
   created_by: string | null
+  updated_by: string | null
   deleted_at: string | null
 }
 

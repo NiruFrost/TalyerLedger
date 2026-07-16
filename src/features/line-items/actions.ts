@@ -17,11 +17,10 @@ export async function getLineItemsByJob(jobId: string): Promise<LineItem[]> {
 export async function createLineItem(data: LineItemInsert): Promise<LineItem> {
   const supabase = createClient()
   const lineTotal = calculateLineTotal(data.quantity ?? 0, data.unit_price ?? 0)
-  const { discount_type, discount_value, ...dbData } = data
 
   const { data: newItem, error } = await supabase
     .from('line_items')
-    .insert({ ...dbData, line_total: lineTotal })
+    .insert({ ...data, line_total: lineTotal })
     .select()
     .single()
   if (error) throw error
@@ -30,8 +29,7 @@ export async function createLineItem(data: LineItemInsert): Promise<LineItem> {
 
 export async function updateLineItem(id: string, data: LineItemUpdate): Promise<LineItem> {
   const supabase = createClient()
-  const { discount_type, discount_value, ...dbData } = data
-  const updateData = { ...dbData }
+  const updateData = { ...data }
   if (data.quantity !== undefined || data.unit_price !== undefined) {
     const qty = data.quantity ?? 0
     const price = data.unit_price ?? 0

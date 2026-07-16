@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -28,37 +28,25 @@ interface UnitComboboxProps {
 
 export function UnitCombobox({ value, onChange, className }: UnitComboboxProps) {
   const [open, setOpen] = useState(false)
-  const [inputValue, setInputValue] = useState(value)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    setInputValue(value)
-  }, [value])
 
   function handleSelect(unit: string) {
     onChange(unit)
-    setInputValue(unit)
     setOpen(false)
     setTimeout(() => inputRef.current?.focus(), 0)
   }
 
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value
-    setInputValue(val)
-    onChange(val)
-  }
-
   const filtered = UNITS.filter((u) =>
-    u.toLowerCase().includes(inputValue.toLowerCase())
+    u.toLowerCase().includes(value.toLowerCase())
   )
-  const isCustom = inputValue && !UNITS.includes(inputValue as typeof UNITS[number])
+  const isCustom = value && !UNITS.includes(value as typeof UNITS[number])
 
   return (
     <div className={cn('relative flex', className)}>
       <Input
         ref={inputRef}
-        value={inputValue}
-        onChange={handleInputChange}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
         className="h-8 text-xs rounded-r-none"
         placeholder="Unit"
       />
@@ -77,20 +65,17 @@ export function UnitCombobox({ value, onChange, className }: UnitComboboxProps) 
           <Command>
             <CommandInput
               placeholder="Search..."
-              value={inputValue}
-              onValueChange={(val) => {
-                setInputValue(val)
-                onChange(val)
-              }}
+              value={value}
+              onValueChange={onChange}
             />
             <CommandList>
               <CommandEmpty>
                 {isCustom ? (
                   <CommandItem
-                    value={inputValue}
-                    onSelect={() => handleSelect(inputValue)}
+                    value={value}
+                    onSelect={() => handleSelect(value)}
                   >
-                    Use &ldquo;{inputValue}&rdquo;
+                    Use &ldquo;{value}&rdquo;
                   </CommandItem>
                 ) : (
                   'No units found'
