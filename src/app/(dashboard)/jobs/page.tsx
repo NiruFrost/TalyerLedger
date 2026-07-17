@@ -35,6 +35,7 @@ export default function JobsPage() {
           <TabsTrigger value="partially_paid">Partial</TabsTrigger>
           <TabsTrigger value="paid">Paid</TabsTrigger>
           <TabsTrigger value="closed">Closed</TabsTrigger>
+          <TabsTrigger value="voided">Voided</TabsTrigger>
         </TabsList>
         <TabsContent value={filter} className="mt-4">
           <JobTable filter={filter} onEdit={(id) => router.push(`/jobs/${id}/edit`)} />

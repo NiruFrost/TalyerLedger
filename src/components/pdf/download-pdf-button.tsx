@@ -2,7 +2,7 @@
 
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { Download, Loader2 } from 'lucide-react'
-import InvoicePDF from './invoice-pdf'
+import JobPDF from './invoice-pdf'
 import { Button } from '@/components/ui/button'
 import type { Job } from '@/lib/types'
 import type { ShopSettings } from '@/features/settings/actions'
@@ -31,7 +31,7 @@ export default function DownloadPdfButton({
 
   return (
     <PDFDownloadLink
-      document={<InvoicePDF job={job} shopSettings={shopSettings ?? undefined} />}
+      document={<JobPDF job={job} shopSettings={shopSettings ?? undefined} />}
       fileName={fileName}
     >
       {({ loading }) => (

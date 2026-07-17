@@ -24,11 +24,11 @@ export default function DashboardPage() {
   }
 
   const totalVehicles = vehicles?.length ?? 0
-  const activeJobs = jobs?.filter((j) => !['paid', 'closed'].includes(j.status)).length ?? 0
+  const activeJobs = jobs?.filter((j) => !['paid', 'closed', 'voided'].includes(j.status)).length ?? 0
   const totalCustomers = customers.length
 
   const outstandingJobs = jobs?.filter(
-    (j) => !['paid', 'closed', 'draft'].includes(j.status)
+    (j) => !['paid', 'closed', 'draft', 'voided'].includes(j.status)
   ) ?? []
 
   const revenueJobs = jobs?.filter(
@@ -39,7 +39,7 @@ export default function DashboardPage() {
   )
 
   const recentVehicles = vehicles?.slice(0, 5) ?? []
-  const recentJobs = jobs?.slice(0, 5) ?? []
+  const recentJobs = jobs?.filter((j) => j.status !== 'voided').slice(0, 5) ?? []
 
   return (
     <div className="space-y-6">

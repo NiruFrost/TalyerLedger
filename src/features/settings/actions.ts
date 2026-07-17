@@ -9,6 +9,9 @@ export interface ShopSettings {
   logo_url: string | null
   tax_id: string | null
   terms_conditions: string | null
+  tin: string | null
+  dti_bn: string | null
+  business_permit: string | null
 }
 
 export interface ShopSettingsUpdate {
@@ -19,6 +22,9 @@ export interface ShopSettingsUpdate {
   logo_url?: string | null
   tax_id?: string | null
   terms_conditions?: string | null
+  tin?: string | null
+  dti_bn?: string | null
+  business_permit?: string | null
 }
 
 export async function getShopSettings(): Promise<ShopSettings | null> {

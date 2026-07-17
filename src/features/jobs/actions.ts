@@ -2,57 +2,63 @@ import { createClient } from '@/lib/supabase/client'
 import { generateEstimateNumber } from '@/lib/utils'
 import type { Job, JobInsert, JobUpdate, LineItem } from '@/lib/types'
 
+const JOB_SELECT = '*, vehicle:vehicles(*), customer:customers(*), line_items:line_items(*), payments:payments(*), linked_job:jobs!linked_job_id(*)'
+
+async function getNextEstimateNo(): Promise<string> {
+  const supabase = createClient()
+  const yearStart = `${new Date().getFullYear()}-01-01`
+  const { count, error } = await supabase
+    .from('jobs')
+    .select('*', { count: 'exact', head: true })
+    .is('deleted_at', null)
+    .gte('created_at', yearStart)
+  if (error) throw error
+  return generateEstimateNumber(count ?? 0)
+}
+
 export async function getJobs(): Promise<Job[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('jobs')
-    .select('*, vehicle:vehicles(*), customer:customers(*), line_items:line_items(*)')
+    .select(JOB_SELECT)
     .is('deleted_at', null)
     .is('line_items.deleted_at', null)
+    .is('payments.deleted_at', null)
     .order('created_at', { ascending: false })
   if (error) throw error
-  return data
+  return data as unknown as Job[]
 }
 
 export async function getJobById(id: string): Promise<Job | null> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('jobs')
-    .select('*, vehicle:vehicles(*), customer:customers(*), line_items:line_items(*), payments:payments(*)')
+    .select(JOB_SELECT)
     .eq('id', id)
     .is('line_items.deleted_at', null)
     .is('payments.deleted_at', null)
     .single()
   if (error) throw error
-  return data
+  return data as unknown as Job
 }
 
 export async function getJobsByVehicle(vehicleId: string): Promise<Job[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('jobs')
-    .select('*, vehicle:vehicles(*), customer:customers(*), line_items:line_items(*)')
+    .select(JOB_SELECT)
     .eq('vehicle_id', vehicleId)
     .is('deleted_at', null)
     .is('line_items.deleted_at', null)
+    .is('payments.deleted_at', null)
     .order('created_at', { ascending: false })
   if (error) throw error
-  return data
+  return data as unknown as Job[]
 }
 
 export async function createJob(data: JobInsert): Promise<Job> {
   const supabase = createClient()
-
-  const yearStart = `${new Date().getFullYear()}-01-01`
-  const { count, error: countError } = await supabase
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .is('deleted_at', null)
-    .gte('created_at', yearStart)
-  if (countError) throw countError
-
-  const estimate_no = generateEstimateNumber(count ?? 0)
-
+  const estimate_no = await getNextEstimateNo()
   const { data: newJob, error } = await supabase
     .from('jobs')
     .insert({ ...data, estimate_no })
@@ -94,21 +100,18 @@ export async function copyJob(sourceId: string): Promise<Job> {
     .single()
   if (fetchErr) throw fetchErr
 
-  const yearStart = `${new Date().getFullYear()}-01-01`
-  const { count, error: countError } = await supabase
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .is('deleted_at', null)
-    .gte('created_at', yearStart)
-  if (countError) throw countError
-
-  const estimate_no = generateEstimateNumber(count ?? 0)
+  const estimate_no = await getNextEstimateNo()
 
   const { data: newJob, error: insErr } = await supabase
     .from('jobs')
     .insert({
       vehicle_id: source.vehicle_id,
       customer_id: source.customer_id,
+      payer_type: source.payer_type,
+      insurance_company: source.insurance_company,
+      insurance_policy_no: source.insurance_policy_no,
+      insurance_claim_no: source.insurance_claim_no,
+      linked_job_id: source.linked_job_id,
       status: 'draft',
       date: new Date().toISOString().split('T')[0],
       prepared_by: source.prepared_by,
@@ -170,3 +173,5 @@ export async function getPaymentsTotal(jobId: string): Promise<number> {
   if (error) throw error
   return (data || []).reduce((sum, p) => sum + p.amount, 0)
 }
+
+

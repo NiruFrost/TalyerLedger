@@ -1,6 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
 
-interface InvoicePDFProps {
+interface JobPDFProps {
   job: {
     estimate_no: string
     date: string
@@ -40,6 +40,9 @@ interface InvoicePDFProps {
     contact_number?: string | null
     email?: string | null
     logo_url?: string | null
+    tin?: string | null
+    dti_bn?: string | null
+    business_permit?: string | null
   }
 }
 
@@ -82,22 +85,23 @@ const formatCurrency = (amount: number, currency: string): string => {
   return `${symbol}${formatted}`
 }
 
-const formatStatus = (status: string): string => {
-  return status
-    .split('_')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
+function getDocumentLabel(status: string): string {
+  const estimateStatuses = ['draft', 'estimate']
+  const paymentStatuses = ['paid', 'partially_paid']
+  if (estimateStatuses.includes(status)) return 'Service Estimate'
+  if (paymentStatuses.includes(status)) return 'Payment Acknowledgment'
+  return 'Statement of Account'
 }
 
 interface GroupedCategory {
   category: string
   label: string
-  items: NonNullable<InvoicePDFProps['job']['line_items']>
+  items: NonNullable<JobPDFProps['job']['line_items']>
   subtotal: number
 }
 
-const groupLineItems = (items: NonNullable<InvoicePDFProps['job']['line_items']>): GroupedCategory[] => {
-  const groups: Record<string, NonNullable<InvoicePDFProps['job']['line_items']>> = {}
+const groupLineItems = (items: NonNullable<JobPDFProps['job']['line_items']>): GroupedCategory[] => {
+  const groups: Record<string, NonNullable<JobPDFProps['job']['line_items']>> = {}
 
   for (const item of items) {
     if (!groups[item.category]) groups[item.category] = []
@@ -141,6 +145,14 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: COLORS.gray,
     marginTop: 2,
+  },
+  docType: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: COLORS.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 4,
   },
   logoPlaceholder: {
     width: 60,
@@ -364,6 +376,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     textAlign: 'center',
     fontStyle: 'italic',
+    marginTop: 8,
   },
   pageFooter: {
     position: 'absolute',
@@ -387,12 +400,17 @@ const styles = StyleSheet.create({
   },
 })
 
-const InvoicePDF = ({ job, shopSettings }: InvoicePDFProps) => {
+const JobPDF = ({ job, shopSettings }: JobPDFProps) => {
   const shopName = shopSettings?.shop_name || 'TalyerLedger Auto Repair'
   const shopAddress = shopSettings?.address
   const shopContact = shopSettings?.contact_number
   const shopEmail = shopSettings?.email
+  const shopTin = shopSettings?.tin
+  const shopDtiBn = shopSettings?.dti_bn
+  const shopPermit = shopSettings?.business_permit
   const logoUrl = shopSettings?.logo_url
+
+  const docLabel = getDocumentLabel(job.status)
 
   const displayOdometer = job.odometer != null ? `${job.odometer.toLocaleString()} km` : null
 
@@ -414,6 +432,10 @@ const InvoicePDF = ({ job, shopSettings }: InvoicePDFProps) => {
             {shopAddress && <Text style={styles.shopDetail}>{shopAddress}</Text>}
             {shopContact && <Text style={styles.shopDetail}>Tel: {shopContact}</Text>}
             {shopEmail && <Text style={styles.shopDetail}>Email: {shopEmail}</Text>}
+            {shopTin && <Text style={styles.shopDetail}>TIN: {shopTin}</Text>}
+            {shopDtiBn && <Text style={styles.shopDetail}>DTI/BN: {shopDtiBn}</Text>}
+            {shopPermit && <Text style={styles.shopDetail}>Permit: {shopPermit}</Text>}
+            <Text style={styles.docType}>{docLabel}</Text>
           </View>
           {logoUrl ? (
             <View style={styles.logoPlaceholder}>
@@ -441,7 +463,7 @@ const InvoicePDF = ({ job, shopSettings }: InvoicePDFProps) => {
             <Text style={styles.estimateNo}>{job.estimate_no}</Text>
             <Text style={styles.infoText}>Date: {job.date}</Text>
             {job.prepared_by && <Text style={styles.infoText}>Prepared By: {job.prepared_by}</Text>}
-            <Text style={styles.statusBadge}>{formatStatus(job.status)}</Text>
+            <Text style={styles.statusBadge}>{docLabel}</Text>
           </View>
         </View>
 
@@ -546,6 +568,10 @@ const InvoicePDF = ({ job, shopSettings }: InvoicePDFProps) => {
           </View>
         </View>
 
+        <Text style={styles.footerNotice}>
+          This is a computer-generated {docLabel.toLowerCase()} and is valid without a signature.
+        </Text>
+
         <View style={styles.pageFooter}>
           <Text style={styles.pageNumber}>{shopName}</Text>
         </View>
@@ -554,4 +580,4 @@ const InvoicePDF = ({ job, shopSettings }: InvoicePDFProps) => {
   )
 }
 
-export default InvoicePDF
+export default JobPDF

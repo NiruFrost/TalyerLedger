@@ -19,6 +19,9 @@ const settingsSchema = z.object({
   contact_number: z.string().optional().or(z.literal('')),
   email: z.string().email().optional().or(z.literal('')),
   logo_url: z.string().optional().or(z.literal('')),
+  tin: z.string().optional().or(z.literal('')),
+  dti_bn: z.string().optional().or(z.literal('')),
+  business_permit: z.string().optional().or(z.literal('')),
 })
 
 type SettingsFormValues = z.infer<typeof settingsSchema>
@@ -40,6 +43,9 @@ export default function SettingsPage() {
       contact_number: '',
       email: '',
       logo_url: '',
+      tin: '',
+      dti_bn: '',
+      business_permit: '',
     },
   })
 
@@ -51,6 +57,9 @@ export default function SettingsPage() {
         contact_number: settings.contact_number || '',
         email: settings.email || '',
         logo_url: settings.logo_url || '',
+        tin: settings.tin || '',
+        dti_bn: settings.dti_bn || '',
+        business_permit: settings.business_permit || '',
       })
     }
   }, [settings, reset])
@@ -126,6 +135,26 @@ export default function SettingsPage() {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>Business Registration</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="tin">TIN (Tax Identification No.)</Label>
+            <Input id="tin" {...register('tin')} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="dti_bn">DTI / Business Registration No.</Label>
+            <Input id="dti_bn" {...register('dti_bn')} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="business_permit">Business Permit No.</Label>
+            <Input id="business_permit" {...register('business_permit')} />
+          </div>
         </CardContent>
       </Card>
     </div>

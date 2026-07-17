@@ -6,6 +6,7 @@ export const JOB_STATUSES = [
   { value: 'partially_paid', label: 'Partially Paid', color: 'bg-yellow-500' },
   { value: 'paid', label: 'Paid', color: 'bg-emerald-500' },
   { value: 'closed', label: 'Complete', color: 'bg-gray-700' },
+  { value: 'voided', label: 'Voided', color: 'bg-red-700' },
 ] as const
 
 export const LINE_ITEM_CATEGORIES = [
@@ -46,6 +47,17 @@ export const PHOTO_TYPES = [
   { value: 'damage', label: 'Damage' },
   { value: 'vehicle_overview', label: 'Vehicle Overview' },
   { value: 'odometer', label: 'Odometer' },
+] as const
+
+export const PAYER_TYPES = [
+  { value: 'customer', label: 'Customer' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'both', label: 'Both' },
+] as const
+
+export const PAYMENT_TYPES = [
+  { value: 'deposit', label: 'Deposit' },
+  { value: 'regular', label: 'Regular Payment' },
 ] as const
 
 export const ESTIMATE_NO_PATTERN = 'YY-MMDD-XXXXX'

@@ -2,7 +2,7 @@
 
 import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer'
 import { Download, Loader2 } from 'lucide-react'
-import InvoicePDF from './invoice-pdf'
+import JobPDF from './invoice-pdf'
 import { Button } from '@/components/ui/button'
 import type { Job } from '@/lib/types'
 import type { ShopSettings } from '@/features/settings/actions'
@@ -28,7 +28,7 @@ export default function PdfPreview({ job, shopSettings }: PdfPreviewProps) {
     <div className="space-y-4">
       <div className="flex justify-end">
         <PDFDownloadLink
-          document={<InvoicePDF job={job} shopSettings={shopSettings ?? undefined} />}
+          document={<JobPDF job={job} shopSettings={shopSettings ?? undefined} />}
           fileName={fileName}
         >
           {({ loading }) => (
@@ -44,7 +44,7 @@ export default function PdfPreview({ job, shopSettings }: PdfPreviewProps) {
         </PDFDownloadLink>
       </div>
       <PDFViewer style={{ width: '100%', height: 'calc(100vh - 12rem)' }}>
-        <InvoicePDF job={job} shopSettings={shopSettings ?? undefined} />
+        <JobPDF job={job} shopSettings={shopSettings ?? undefined} />
       </PDFViewer>
     </div>
   )

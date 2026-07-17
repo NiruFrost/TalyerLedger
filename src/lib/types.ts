@@ -1,4 +1,8 @@
-export type JobStatus = 'draft' | 'estimate' | 'approved' | 'invoiced' | 'partially_paid' | 'paid' | 'closed'
+export type JobStatus = 'draft' | 'estimate' | 'approved' | 'invoiced' | 'partially_paid' | 'paid' | 'closed' | 'voided'
+
+export type PayerType = 'customer' | 'insurance' | 'both'
+
+export type PaymentType = 'deposit' | 'regular'
 
 export type LineItemCategory = 'fluids' | 'parts' | 'accessories' | 'labor' | 'other'
 
@@ -76,6 +80,11 @@ export interface Job {
   vehicle_id: string
   customer_id: string | null
   status: JobStatus
+  payer_type: PayerType | null
+  insurance_company: string | null
+  insurance_policy_no: string | null
+  insurance_claim_no: string | null
+  linked_job_id: string | null
   date: string
   prepared_by: string | null
   odometer: number | null
@@ -93,12 +102,18 @@ export interface Job {
   customer?: Customer | null
   line_items?: LineItem[]
   payments?: Payment[]
+  linked_job?: Job | null
 }
 
 export interface JobInsert {
   vehicle_id: string
   customer_id?: string | null
   status?: JobStatus
+  payer_type?: PayerType | null
+  insurance_company?: string | null
+  insurance_policy_no?: string | null
+  insurance_claim_no?: string | null
+  linked_job_id?: string | null
   date?: string
   prepared_by?: string | null
   odometer?: number | null
@@ -181,6 +196,7 @@ export interface Payment {
   date: string
   amount: number
   payment_method: string
+  payment_type: PaymentType
   reference_number: string | null
   notes: string | null
   created_at: string
@@ -195,9 +211,12 @@ export interface PaymentInsert {
   date: string
   amount: number
   payment_method: string
+  payment_type?: PaymentType
   reference_number?: string | null
   notes?: string | null
 }
+
+export type PaymentUpdate = Partial<PaymentInsert>
 
 export interface DashboardStats {
   total_vehicles: number

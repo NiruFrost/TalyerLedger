@@ -9,6 +9,7 @@ import { useUpdateJob } from '@/features/jobs/hooks/use-jobs'
 import { useShopSettings } from '@/features/settings/hooks/use-settings'
 import { JobStatusBadge } from '@/features/jobs/components/job-status-badge'
 import { LineItemTable } from '@/features/line-items/components/line-item-table'
+import { PaymentList } from '@/features/payments/components/payment-list'
 
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -130,6 +131,53 @@ export default function JobDetailPage() {
               <span className="text-muted-foreground">Odometer</span>
               <span>{job.odometer ? `${job.odometer.toLocaleString()} km` : '-'}</span>
             </div>
+            {job.payer_type && (
+              <>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Payer Type</span>
+                  <span className="capitalize">{job.payer_type}</span>
+                </div>
+              </>
+            )}
+            {(job.payer_type === 'insurance' || job.payer_type === 'both') && (
+              <>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Insurance</span>
+                  <span>{job.insurance_company || '-'}</span>
+                </div>
+                {job.insurance_policy_no && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Policy No.</span>
+                      <span>{job.insurance_policy_no}</span>
+                    </div>
+                  </>
+                )}
+                {job.insurance_claim_no && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Claim No.</span>
+                      <span>{job.insurance_claim_no}</span>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+            {job.linked_job_id && (
+              <>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Linked Job</span>
+                  <Link href={`/jobs/${job.linked_job_id}`} className="hover:underline text-blue-600">
+                    {job.linked_job?.estimate_no || job.linked_job_id}
+                  </Link>
+                </div>
+              </>
+            )}
             {job.notes && (
               <>
                 <Separator />
@@ -205,9 +253,8 @@ export default function JobDetailPage() {
         </TabsContent>
         <TabsContent value="payments">
           <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              <FileText className="mx-auto h-8 w-8 mb-2" />
-              <p>Payment tracking coming soon.</p>
+            <CardContent className="pt-6">
+              <PaymentList jobId={id} currency={job.currency} />
             </CardContent>
           </Card>
         </TabsContent>

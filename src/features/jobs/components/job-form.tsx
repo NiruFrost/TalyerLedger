@@ -11,7 +11,7 @@ import { syncLineItems } from '@/features/line-items/actions'
 import { getPaymentsTotal } from '@/features/jobs/actions'
 import { useCustomers } from '@/features/customers/hooks/use-customers'
 import { useVehicles } from '@/features/vehicles/hooks/use-vehicles'
-import { JOB_STATUSES, CURRENCIES, LINE_ITEM_CATEGORIES, INSTALLATION_STATUSES } from '@/lib/constants'
+import { JOB_STATUSES, CURRENCIES, LINE_ITEM_CATEGORIES, INSTALLATION_STATUSES, PAYER_TYPES } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -365,8 +365,51 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="payer_type">Payer Type</Label>
+            <Select
+              value={form.watch('payer_type')}
+              onValueChange={(value) => setValue('payer_type', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select payer" />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYER_TYPES.map((pt) => (
+                  <SelectItem key={pt.value} value={pt.value}>
+                    {pt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
+
+      {(form.watch('payer_type') === 'insurance' || form.watch('payer_type') === 'both') && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Insurance Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="insurance_company">Insurance Company</Label>
+                <Input id="insurance_company" {...register('insurance_company')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="insurance_policy_no">Policy No.</Label>
+                <Input id="insurance_policy_no" {...register('insurance_policy_no')} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="insurance_claim_no">Claim No.</Label>
+              <Input id="insurance_claim_no" {...register('insurance_claim_no')} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Line Items Section */}
       <Card>
