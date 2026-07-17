@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator'
 import type { WorkOrderStatus } from '@/lib/types'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate } from '@/lib/utils'
-import { JOB_STATUSES } from '@/lib/constants'
+import { JOB_STATUSES, STATUS_TRANSITIONS } from '@/lib/constants'
 
 export default function WorkOrderDetailPage() {
   const params = useParams()
@@ -75,7 +75,10 @@ export default function WorkOrderDetailPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {JOB_STATUSES.map((s) => (
+              {JOB_STATUSES.filter((s) => {
+                const allowed = STATUS_TRANSITIONS[workOrder.status] ?? []
+                return s.value === workOrder.status || allowed.includes(s.value)
+              }).map((s) => (
                 <SelectItem key={s.value} value={s.value}>
                   {s.label}
                 </SelectItem>
@@ -181,8 +184,17 @@ export default function WorkOrderDetailPage() {
               <>
                 <Separator />
                 <div className="flex flex-col gap-1">
-                  <span className="text-muted-foreground">Notes</span>
+                  <span className="text-muted-foreground">Customer Notes</span>
                   <span>{workOrder.notes}</span>
+                </div>
+              </>
+            )}
+            {workOrder.internal_notes && (
+              <>
+                <Separator />
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground">Internal Notes</span>
+                  <span className="italic">{workOrder.internal_notes}</span>
                 </div>
               </>
             )}

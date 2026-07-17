@@ -31,9 +31,9 @@ export default function JobsPage() {
           <TabsTrigger value="draft">Draft</TabsTrigger>
           <TabsTrigger value="estimate">Estimates</TabsTrigger>
           <TabsTrigger value="approved">Approved</TabsTrigger>
-          <TabsTrigger value="invoiced">Invoiced</TabsTrigger>
-          <TabsTrigger value="partially_paid">Partial</TabsTrigger>
-          <TabsTrigger value="paid">Paid</TabsTrigger>
+          <TabsTrigger value="in_progress">In Progress</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="released">Released</TabsTrigger>
           <TabsTrigger value="closed">Closed</TabsTrigger>
           <TabsTrigger value="voided">Voided</TabsTrigger>
         </TabsList>

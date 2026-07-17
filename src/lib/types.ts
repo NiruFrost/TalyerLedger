@@ -1,4 +1,6 @@
-export type WorkOrderStatus = 'draft' | 'estimate' | 'approved' | 'invoiced' | 'partially_paid' | 'paid' | 'closed' | 'voided'
+export type WorkOrderStatus = 'draft' | 'estimate' | 'approved' | 'in_progress' | 'completed' | 'released' | 'closed' | 'voided'
+
+export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'refund'
 
 export type PayerType = 'customer' | 'insurance' | 'both'
 
@@ -86,6 +88,7 @@ export interface WorkOrder {
   vehicle_id: string
   customer_id: string | null
   status: WorkOrderStatus
+  payment_status: PaymentStatus
   payer_type: PayerType | null
   insurance_company: string | null
   insurance_policy_no: string | null
@@ -98,6 +101,7 @@ export interface WorkOrder {
   overall_discount_type: DiscountType | null
   overall_discount_value: number
   notes: string | null
+  internal_notes: string | null
   terms: string | null
   created_at: string
   updated_at: string
@@ -115,6 +119,7 @@ export interface WorkOrderInsert {
   vehicle_id: string
   customer_id?: string | null
   status?: WorkOrderStatus
+  payment_status?: PaymentStatus
   payer_type?: PayerType | null
   insurance_company?: string | null
   insurance_policy_no?: string | null
@@ -127,10 +132,11 @@ export interface WorkOrderInsert {
   overall_discount_type?: DiscountType | null
   overall_discount_value?: number
   notes?: string | null
+  internal_notes?: string | null
   terms?: string | null
 }
 
-export type WorkOrderUpdate = Partial<WorkOrderInsert> & { status?: WorkOrderStatus }
+export type WorkOrderUpdate = Partial<WorkOrderInsert> & { status?: WorkOrderStatus; payment_status?: PaymentStatus }
 
 export interface LineItem {
   id: string

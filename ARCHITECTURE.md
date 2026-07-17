@@ -403,7 +403,31 @@ Component → Form (react-hook-form + zodResolver)
 | `documents` table | ✅ | Printable document records with `work_order_id`, `document_type`, `label`, `generated_at`, `file_url` — UI not yet built |
 | `activity_logs` table | ✅ | Event timeline with `work_order_id`, `event`, `description`, `metadata (jsonb)` — UI not yet built |
 | `attachments` table | ✅ | Polymorphic attachments replacing `photos` table: `parent_type` + `parent_id`, `file_url`, `file_type`, `file_name`, `file_size` |
-| Migration 00005 | ✅ | Full reversible migration: rename jobs→work_orders, indexes/triggers renamed, new tables with RLS
+| Migration 00005 | ✅ | Full reversible migration: rename jobs→work_orders, indexes/triggers renamed, new tables with RLS |
+
+### v2 Features (Phase 2)
+
+| Feature | Priority | Notes |
+|---|---|---|
+| Internal Notes | ✅ | `internal_notes` column on work_orders, form field, detail view, excluded from PDF |
+| Status Workflow | ✅ | New statuses (draft→estimate→approved→in_progress→completed→released→closed+voided), transition map (`STATUS_TRANSITIONS`), status select respects transitions in form + detail |
+| Payment Status | ✅ | `payment_status` column (unpaid/partial/paid/refund) auto-derived from payments via `recalculatePaymentStatus()`, also settable in form |
+| Vehicle Timeline | Pending | Replace simple "Service History" list with a visual timeline on the vehicle detail page |
+| Notifications DB Schema | Pending | Design tables for notification events — delivery is future |
+| Labor Catalog | Pending | Reusable catalog of predefined labor line items |
+| Service Packages | Pending | Predefined bundles of line items |
+
+### Migration 00006 — Status Workflow + Internal Notes
+
+| Change | Details |
+|---|---|
+| `work_orders.internal_notes` | New TEXT column for staff-only notes (never in PDF) |
+| `work_orders.payment_status` | New TEXT column with CHECK constraint: unpaid/partial/paid/refund, default 'unpaid' |
+| Status enum replacement | Old `job_status` (draft/estimate/approved/invoiced/partially_paid/paid/closed/voided) → new `work_order_status` (draft/estimate/approved/in_progress/completed/released/closed/voided) |
+| Status mapping | `invoiced`/`partially_paid` → `completed`, `paid` → `released`, others preserved |
+| `STATUS_TRANSITIONS` | Defines allowed transitions: draft→estimate→approved→in_progress→completed→released→closed; voided is terminal |
+| `PAYMENT_STATUSES` | Updated to: unpaid, partial, paid, refund (replaces overpaid) |
+| Auto-derivation | `recalculatePaymentStatus()` in payment actions updates `work_orders.payment_status` after create/update/delete |
 
 ---
 
@@ -415,15 +439,17 @@ Component → Form (react-hook-form + zodResolver)
 | `00002_line_items_enhancements.sql` | Discount columns: discount_type, discount_value | Applied |
 | `00003_photos_audit_storage.sql` | Photos updated_at/updated_by, shop_settings created_by, storage RLS | Applied |
 | `00004_v2_enhancements.sql` | Voided status (enum), payer_type, insurance_*, linked_job_id on jobs; payment_type on payments; TIN/DTI/permit on shop_settings | Applied |
-| `00005_work_order_document_attachment.sql` | Rename jobs→work_orders, FK column renames (job_id→work_order_id, linked_job_id→linked_work_order_id), indexes/triggers renamed; new tables: documents, activity_logs, attachments (polymorphic, replaces photos) | **Needs to be applied** |
+| `00005_work_order_document_attachment.sql` | Rename jobs→work_orders, FK column renames (job_id→work_order_id, linked_job_id→linked_work_order_id), indexes/triggers renamed; new tables: documents, activity_logs, attachments (polymorphic, replaces photos) | Applied |
+| `00006_status_workflow_internal_notes.sql` | Add internal_notes + payment_status to work_orders; replace status enum with new workflow (in_progress, completed, released); STATUS_TRANSITIONS; auto-derive payment_status | **Needs to be applied** |
 
 ### Migration Order
 
 ```sql
 -- Run sequentially in Supabase SQL Editor
--- 1. 00003 (if not yet applied)
+-- 1. 00003
 -- 2. 00004 (MUST be applied before 00005)
 -- 3. 00005
+-- 4. 00006
 ```
 
 ---

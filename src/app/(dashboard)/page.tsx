@@ -24,15 +24,15 @@ export default function DashboardPage() {
   }
 
   const totalVehicles = vehicles?.length ?? 0
-  const activeWorkOrders = workOrders?.filter((wo) => !['paid', 'closed', 'voided'].includes(wo.status)).length ?? 0
+  const activeWorkOrders = workOrders?.filter((wo) => !['released', 'closed', 'voided'].includes(wo.status)).length ?? 0
   const totalCustomers = customers.length
 
   const outstandingWorkOrders = workOrders?.filter(
-    (wo) => !['paid', 'closed', 'draft', 'voided'].includes(wo.status)
+    (wo) => !['released', 'closed', 'draft', 'voided'].includes(wo.status)
   ) ?? []
 
   const revenueWorkOrders = workOrders?.filter(
-    (wo) => ['paid', 'invoiced'].includes(wo.status)
+    (wo) => ['released', 'completed'].includes(wo.status)
   ) ?? []
   const totalRevenue = revenueWorkOrders.reduce(
     (sum, wo) => sum + (wo.line_items ? calculateJobTotal(wo.line_items) : 0), 0

@@ -120,6 +120,7 @@ export async function copyWorkOrder(sourceId: string): Promise<WorkOrder> {
       overall_discount_type: source.overall_discount_type,
       overall_discount_value: source.overall_discount_value,
       notes: source.notes,
+      internal_notes: source.internal_notes,
       terms: source.terms,
       estimate_no,
     })

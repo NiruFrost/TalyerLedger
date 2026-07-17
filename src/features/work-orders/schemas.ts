@@ -18,6 +18,7 @@ export const workOrderFormSchema = z.object({
   overall_discount_type: z.string().optional().or(z.literal('')),
   overall_discount_value: z.coerce.number().min(0).optional(),
   notes: z.string().optional().or(z.literal('')),
+  internal_notes: z.string().optional().or(z.literal('')),
   terms: z.string().optional().or(z.literal('')),
   line_items: z.array(lineItemFormSchema),
 })

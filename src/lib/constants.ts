@@ -2,12 +2,23 @@ export const JOB_STATUSES = [
   { value: 'draft', label: 'Draft', color: 'bg-gray-500' },
   { value: 'estimate', label: 'Estimate', color: 'bg-blue-500' },
   { value: 'approved', label: 'Approved', color: 'bg-green-500' },
-  { value: 'invoiced', label: 'Invoiced', color: 'bg-purple-500' },
-  { value: 'partially_paid', label: 'Partially Paid', color: 'bg-yellow-500' },
-  { value: 'paid', label: 'Paid', color: 'bg-emerald-500' },
-  { value: 'closed', label: 'Complete', color: 'bg-gray-700' },
+  { value: 'in_progress', label: 'In Progress', color: 'bg-yellow-500' },
+  { value: 'completed', label: 'Completed', color: 'bg-emerald-500' },
+  { value: 'released', label: 'Released', color: 'bg-purple-500' },
+  { value: 'closed', label: 'Closed', color: 'bg-gray-700' },
   { value: 'voided', label: 'Voided', color: 'bg-red-700' },
 ] as const
+
+export const STATUS_TRANSITIONS: Record<string, string[]> = {
+  draft: ['estimate'],
+  estimate: ['approved'],
+  approved: ['in_progress'],
+  in_progress: ['completed'],
+  completed: ['released'],
+  released: ['closed'],
+  closed: [],
+  voided: [],
+} as const
 
 export const LINE_ITEM_CATEGORIES = [
   { value: 'fluids', label: 'Fluids' },
@@ -30,7 +41,7 @@ export const PAYMENT_STATUSES = [
   { value: 'unpaid', label: 'Unpaid', color: 'text-red-600 bg-red-50 border-red-200' },
   { value: 'partial', label: 'Partial', color: 'text-amber-600 bg-amber-50 border-amber-200' },
   { value: 'paid', label: 'Paid', color: 'text-green-600 bg-green-50 border-green-200' },
-  { value: 'overpaid', label: 'Overpaid', color: 'text-blue-600 bg-blue-50 border-blue-200' },
+  { value: 'refund', label: 'Refund', color: 'text-blue-600 bg-blue-50 border-blue-200' },
 ] as const
 
 export const CURRENCIES = [

@@ -11,7 +11,7 @@ import { syncLineItems } from '@/features/line-items/actions'
 import { getPaymentsTotal } from '@/features/work-orders/actions'
 import { useCustomers } from '@/features/customers/hooks/use-customers'
 import { useVehicles } from '@/features/vehicles/hooks/use-vehicles'
-import { JOB_STATUSES, CURRENCIES, LINE_ITEM_CATEGORIES, INSTALLATION_STATUSES, PAYER_TYPES } from '@/lib/constants'
+import { JOB_STATUSES, PAYMENT_STATUSES, STATUS_TRANSITIONS, CURRENCIES, LINE_ITEM_CATEGORIES, INSTALLATION_STATUSES, PAYER_TYPES } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { UnitCombobox } from '@/components/ui/unit-combobox'
 import { Separator } from '@/components/ui/separator'
-import type { WorkOrder, WorkOrderStatus, CurrencyCode, LineItemCategory, DiscountType, PayerType } from '@/lib/types'
+import type { WorkOrder, WorkOrderStatus, PaymentStatus, CurrencyCode, LineItemCategory, DiscountType, PayerType } from '@/lib/types'
 
 interface WorkOrderFormProps {
   defaultValues?: Partial<WorkOrder>
@@ -96,6 +96,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
           overall_discount_type: defaultValues.overall_discount_type || '',
           overall_discount_value: defaultValues.overall_discount_value || 0,
           notes: defaultValues.notes || '',
+          internal_notes: defaultValues.internal_notes || '',
           terms: defaultValues.terms || '',
           line_items: (defaultValues.line_items || []).map((li, i) => ({
             id: li.id,
@@ -128,6 +129,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
           overall_discount_type: '',
           overall_discount_value: 0,
           notes: '',
+          internal_notes: '',
           terms: '',
           line_items: [],
         },
@@ -239,6 +241,8 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
       overall_discount_type: (data.overall_discount_type || null) as DiscountType | null,
       overall_discount_value: data.overall_discount_value || 0,
       notes: data.notes || null,
+      internal_notes: data.internal_notes || null,
+      payment_status: calculations.paymentStatus as PaymentStatus,
       terms: data.terms || null,
     }
 
@@ -340,11 +344,17 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {JOB_STATUSES.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
+                  {JOB_STATUSES
+                    .filter((s) => {
+                      if (!defaultValues?.status) return true
+                      const allowed = STATUS_TRANSITIONS[defaultValues.status] ?? []
+                      return allowed.includes(s.value)
+                    })
+                    .map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -728,16 +738,10 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                   <Badge
                     variant="outline"
                     className={
-                      calculations.paymentStatus === 'unpaid' ? 'text-red-600 bg-red-50 border-red-200' :
-                      calculations.paymentStatus === 'partial' ? 'text-amber-600 bg-amber-50 border-amber-200' :
-                      calculations.paymentStatus === 'paid' ? 'text-green-600 bg-green-50 border-green-200' :
-                      'text-blue-600 bg-blue-50 border-blue-200'
+                      PAYMENT_STATUSES.find((ps) => ps.value === calculations.paymentStatus)?.color || ''
                     }
                   >
-                    {calculations.paymentStatus === 'unpaid' ? 'Unpaid' :
-                     calculations.paymentStatus === 'partial' ? 'Partial' :
-                     calculations.paymentStatus === 'paid' ? 'Paid' :
-                     'Overpaid'}
+                    {PAYMENT_STATUSES.find((ps) => ps.value === calculations.paymentStatus)?.label || calculations.paymentStatus}
                   </Badge>
                 </div>
               </div>
@@ -748,14 +752,27 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="notes">Notes</Label>
+          <Label htmlFor="notes">Customer Notes</Label>
           <Textarea id="notes" {...register('notes')} />
+          <p className="text-xs text-muted-foreground">Visible on PDF</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="terms">Terms</Label>
           <Textarea id="terms" {...register('terms')} />
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Internal Notes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Textarea id="internal_notes" {...register('internal_notes')} placeholder="Notes for staff only — never printed on PDF..." />
+            <p className="text-xs text-muted-foreground">Internal notes are never shown on PDFs or customer documents.</p>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="flex gap-2 justify-end">
         {onCancel && (
