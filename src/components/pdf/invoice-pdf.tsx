@@ -87,9 +87,9 @@ const formatCurrency = (amount: number, currency: string): string => {
 
 function getDocumentLabel(status: string): string {
   const estimateStatuses: string[] = ['draft', 'estimate']
-  const paymentStatuses: string[] = ['released', 'paid']
+  const releasedStatuses: string[] = ['released', 'closed']
   if (estimateStatuses.includes(status)) return 'Service Estimate'
-  if (paymentStatuses.includes(status)) return 'Payment Acknowledgment'
+  if (releasedStatuses.includes(status)) return 'Payment Acknowledgment'
   return 'Statement of Account'
 }
 
