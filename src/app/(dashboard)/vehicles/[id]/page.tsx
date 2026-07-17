@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Pencil, Plus, Wrench } from 'lucide-react'
@@ -127,6 +128,22 @@ export default function VehicleDetailPage() {
             <p className="font-medium">{vehicle.color || '-'}</p>
           </CardContent>
         </Card>
+        {vehicle.cover_photo && (
+          <Card className="lg:col-span-3">
+            <CardHeader>
+              <CardTitle className="text-sm">Cover Photo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Image
+                src={vehicle.cover_photo}
+                alt={`${vehicle.make} ${vehicle.model}`}
+                width={800}
+                height={300}
+                className="max-h-64 w-full rounded-lg object-cover"
+              />
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">Customer</CardTitle>

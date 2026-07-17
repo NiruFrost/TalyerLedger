@@ -56,3 +56,12 @@ export async function deleteCustomer(id: string): Promise<void> {
     .eq('id', id)
   if (error) throw error
 }
+
+export async function restoreCustomer(id: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('customers')
+    .update({ deleted_at: null })
+    .eq('id', id)
+  if (error) throw error
+}

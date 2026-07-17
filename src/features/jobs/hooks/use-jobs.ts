@@ -9,6 +9,7 @@ import {
   updateJob,
   deleteJob,
   copyJob,
+  restoreJob,
 } from '../actions'
 import type { JobInsert, JobUpdate } from '@/lib/types'
 
@@ -78,6 +79,17 @@ export function useCopyJob() {
     onSuccess: (newJob) => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
       queryClient.invalidateQueries({ queryKey: ['jobs', newJob.id] })
+    },
+  })
+}
+
+export function useRestoreJob() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => restoreJob(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
     },
   })
 }

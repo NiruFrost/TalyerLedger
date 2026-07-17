@@ -49,6 +49,7 @@ export function VehicleForm({ defaultValues, onSuccess, onCancel }: VehicleFormP
           vin: defaultValues.vin || '',
           plate: defaultValues.plate || '',
           color: defaultValues.color || '',
+          cover_photo: defaultValues.cover_photo || '',
           notes: defaultValues.notes || '',
         }
       : {
@@ -61,6 +62,7 @@ export function VehicleForm({ defaultValues, onSuccess, onCancel }: VehicleFormP
           vin: '',
           plate: '',
           color: '',
+          cover_photo: '',
           notes: '',
         },
   })
@@ -78,6 +80,7 @@ export function VehicleForm({ defaultValues, onSuccess, onCancel }: VehicleFormP
       vin: data.vin || null,
       plate: data.plate || null,
       color: data.color || null,
+      cover_photo: data.cover_photo || null,
       notes: data.notes || null,
     }
 
@@ -159,6 +162,12 @@ export function VehicleForm({ defaultValues, onSuccess, onCancel }: VehicleFormP
           <Label htmlFor="plate">Plate #</Label>
           <Input id="plate" {...register('plate')} />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="cover_photo">Cover Photo URL</Label>
+        <Input id="cover_photo" {...register('cover_photo')} placeholder="https://..." />
+        {errors.cover_photo && <p className="text-sm text-red-500">{errors.cover_photo.message}</p>}
       </div>
 
       <div className="space-y-2">

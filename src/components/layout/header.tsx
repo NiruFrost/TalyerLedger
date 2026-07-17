@@ -1,8 +1,9 @@
 'use client'
 
-import { Menu, Search, ChevronDown, LogOut } from 'lucide-react'
+import { Menu, ChevronDown, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { SearchCommand } from '@/features/search/search-command'
 
 interface HeaderProps {
   title?: string
@@ -27,9 +28,7 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
         {title && <h1 className="text-xl font-semibold">{title}</h1>}
       </div>
       <div className="flex items-center gap-3">
-        <button className="rounded-full p-2 text-gray-500 hover:bg-gray-100">
-          <Search className="h-5 w-5" />
-        </button>
+        <SearchCommand />
         <div className="group relative">
           <button className="flex items-center gap-2 rounded-full p-1 hover:bg-gray-100">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-sm font-medium text-gray-700">

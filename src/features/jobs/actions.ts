@@ -151,6 +151,15 @@ export async function copyJob(sourceId: string): Promise<Job> {
   return newJob
 }
 
+export async function restoreJob(id: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('jobs')
+    .update({ deleted_at: null })
+    .eq('id', id)
+  if (error) throw error
+}
+
 export async function getPaymentsTotal(jobId: string): Promise<number> {
   const supabase = createClient()
   const { data, error } = await supabase

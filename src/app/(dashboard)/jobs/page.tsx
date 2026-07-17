@@ -28,9 +28,11 @@ export default function JobsPage() {
       <Tabs value={filter} onValueChange={setFilter}>
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="draft">Draft</TabsTrigger>
           <TabsTrigger value="estimate">Estimates</TabsTrigger>
           <TabsTrigger value="approved">Approved</TabsTrigger>
           <TabsTrigger value="invoiced">Invoiced</TabsTrigger>
+          <TabsTrigger value="partially_paid">Partial</TabsTrigger>
           <TabsTrigger value="paid">Paid</TabsTrigger>
           <TabsTrigger value="closed">Closed</TabsTrigger>
         </TabsList>

@@ -8,6 +8,7 @@ import {
   createVehicle,
   updateVehicle,
   deleteVehicle,
+  restoreVehicle,
 } from '../actions'
 import type { VehicleInsert, VehicleUpdate } from '@/lib/types'
 
@@ -63,6 +64,17 @@ export function useDeleteVehicle() {
 
   return useMutation({
     mutationFn: (id: string) => deleteVehicle(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] })
+    },
+  })
+}
+
+export function useRestoreVehicle() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => restoreVehicle(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] })
     },

@@ -10,6 +10,7 @@ export const vehicleSchema = z.object({
   vin: z.string().optional().or(z.literal('')),
   plate: z.string().optional().or(z.literal('')),
   color: z.string().optional().or(z.literal('')),
+  cover_photo: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
 })
 

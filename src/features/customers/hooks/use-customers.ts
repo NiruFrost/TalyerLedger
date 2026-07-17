@@ -7,6 +7,7 @@ import {
   createCustomer,
   updateCustomer,
   deleteCustomer,
+  restoreCustomer,
 } from '../actions'
 import type { CustomerInsert, CustomerUpdate } from '@/lib/types'
 
@@ -60,6 +61,17 @@ export function useDeleteCustomer() {
 
   return useMutation({
     mutationFn: (id: string) => deleteCustomer(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
+    },
+  })
+}
+
+export function useRestoreCustomer() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => restoreCustomer(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
     },

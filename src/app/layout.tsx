@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono, Inter } from 'next/font/google'
 import { Providers } from '@/components/providers'
 import { SITE_NAME, SITE_DESCRIPTION } from '@/lib/constants'
+import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 import { cn } from "@/lib/utils";
 
@@ -31,7 +32,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn(geistSans.variable, geistMono.variable, "font-sans", inter.variable)} suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Toaster />
+        </Providers>
       </body>
     </html>
   )

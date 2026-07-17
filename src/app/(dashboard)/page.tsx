@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Car, Wrench, Users, FileText, UserPlus } from 'lucide-react'
+import { Car, Wrench, Users, FileText, UserPlus, DollarSign } from 'lucide-react'
 import { useCustomers } from '@/features/customers/hooks/use-customers'
 import { useVehicles } from '@/features/vehicles/hooks/use-vehicles'
 import { useJobs } from '@/features/jobs/hooks/use-jobs'
@@ -27,6 +27,20 @@ export default function DashboardPage() {
   const activeJobs = jobs?.filter((j) => !['paid', 'closed'].includes(j.status)).length ?? 0
   const totalCustomers = customers.length
 
+  const outstandingJobs = jobs?.filter(
+    (j) => !['paid', 'closed', 'draft'].includes(j.status)
+  ) ?? []
+
+  const revenueJobs = jobs?.filter(
+    (j) => ['paid', 'invoiced'].includes(j.status)
+  ) ?? []
+  const totalRevenue = revenueJobs.reduce(
+    (sum, j) => sum + (j.line_items ? calculateJobTotal(j.line_items) : 0), 0
+  )
+
+  const recentVehicles = vehicles?.slice(0, 5) ?? []
+  const recentJobs = jobs?.slice(0, 5) ?? []
+
   return (
     <div className="space-y-6">
       <div>
@@ -34,7 +48,7 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Welcome to TalyerLedger</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
@@ -62,15 +76,25 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold">{totalCustomers}</div>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+            <p className="text-xs text-muted-foreground">Invoiced & Paid jobs</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Recent Jobs</CardTitle>
           </CardHeader>
           <CardContent>
-            {!jobs || jobs.length === 0 ? (
+            {recentJobs.length === 0 ? (
               <p className="text-sm text-muted-foreground">No jobs yet.</p>
             ) : (
               <Table>
@@ -83,7 +107,7 @@ export default function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {jobs.slice(0, 5).map((job) => (
+                  {recentJobs.map((job) => (
                     <TableRow key={job.id}>
                       <TableCell>
                         <Link href={`/jobs/${job.id}`} className="hover:underline font-medium">
@@ -108,29 +132,85 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link href="/jobs/new">
-                <FileText className="mr-2 h-4 w-4" /> Create Estimate
-              </Link>
-            </Button>
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link href="/vehicles/new">
-                <Car className="mr-2 h-4 w-4" /> Add Vehicle
-              </Link>
-            </Button>
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link href="/customers/new">
-                <UserPlus className="mr-2 h-4 w-4" /> Add Customer
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Vehicles</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recentVehicles.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No vehicles yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentVehicles.map((v) => (
+                    <Link
+                      key={v.id}
+                      href={`/vehicles/${v.id}`}
+                      className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent transition-colors"
+                    >
+                      <div>
+                        <p className="font-medium text-sm">{v.make} {v.model}</p>
+                        <p className="text-xs text-muted-foreground">{v.plate || v.vin || 'No plate'}</p>
+                      </div>
+                      <Car className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Outstanding Jobs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {outstandingJobs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No outstanding jobs.</p>
+              ) : (
+                <div className="space-y-3">
+                  {outstandingJobs.slice(0, 5).map((job) => (
+                    <Link
+                      key={job.id}
+                      href={`/jobs/${job.id}`}
+                      className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent transition-colors"
+                    >
+                      <div>
+                        <p className="font-medium text-sm">{job.estimate_no}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(job.date)}</p>
+                      </div>
+                      <JobStatusBadge status={job.status} />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <Link href="/jobs/new">
+              <FileText className="mr-2 h-4 w-4" /> Create Estimate
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/vehicles/new">
+              <Car className="mr-2 h-4 w-4" /> Add Vehicle
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/customers/new">
+              <UserPlus className="mr-2 h-4 w-4" /> Add Customer
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }
