@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  getLineItemsByJob,
+  getLineItemsByWorkOrder,
   createLineItem,
   updateLineItem,
   deleteLineItem,
@@ -10,11 +10,11 @@ import {
 } from '../actions'
 import type { LineItemInsert, LineItemUpdate } from '@/lib/types'
 
-export function useLineItems(jobId: string) {
+export function useLineItems(workOrderId: string) {
   return useQuery({
-    queryKey: ['line-items', jobId],
-    queryFn: () => getLineItemsByJob(jobId),
-    enabled: !!jobId,
+    queryKey: ['line-items', workOrderId],
+    queryFn: () => getLineItemsByWorkOrder(workOrderId),
+    enabled: !!workOrderId,
   })
 }
 
@@ -24,8 +24,8 @@ export function useCreateLineItem() {
   return useMutation({
     mutationFn: (data: LineItemInsert) => createLineItem(data),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['line-items', data.job_id] })
-      queryClient.invalidateQueries({ queryKey: ['jobs', data.job_id] })
+      queryClient.invalidateQueries({ queryKey: ['line-items', data.work_order_id] })
+      queryClient.invalidateQueries({ queryKey: ['work-orders', data.work_order_id] })
     },
   })
 }
@@ -37,8 +37,8 @@ export function useUpdateLineItem() {
     mutationFn: ({ id, data }: { id: string; data: LineItemUpdate }) =>
       updateLineItem(id, data),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['line-items', data.job_id] })
-      queryClient.invalidateQueries({ queryKey: ['jobs', data.job_id] })
+      queryClient.invalidateQueries({ queryKey: ['line-items', data.work_order_id] })
+      queryClient.invalidateQueries({ queryKey: ['work-orders', data.work_order_id] })
     },
   })
 }
@@ -47,10 +47,10 @@ export function useDeleteLineItem() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id }: { id: string; jobId: string }) => deleteLineItem(id),
+    mutationFn: ({ id }: { id: string; workOrderId: string }) => deleteLineItem(id),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['line-items', variables.jobId] })
-      queryClient.invalidateQueries({ queryKey: ['jobs', variables.jobId] })
+      queryClient.invalidateQueries({ queryKey: ['line-items', variables.workOrderId] })
+      queryClient.invalidateQueries({ queryKey: ['work-orders', variables.workOrderId] })
     },
   })
 }

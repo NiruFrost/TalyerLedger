@@ -1,4 +1,4 @@
-export type JobStatus = 'draft' | 'estimate' | 'approved' | 'invoiced' | 'partially_paid' | 'paid' | 'closed' | 'voided'
+export type WorkOrderStatus = 'draft' | 'estimate' | 'approved' | 'invoiced' | 'partially_paid' | 'paid' | 'closed' | 'voided'
 
 export type PayerType = 'customer' | 'insurance' | 'both'
 
@@ -11,6 +11,12 @@ export type CurrencyCode = 'PHP' | 'USD' | 'EUR'
 export type InstallationStatus = 'to_confirm' | 'ordered' | 'in_stock' | 'installed' | 'out_of_stock' | 'na'
 
 export type DiscountType = 'amount' | 'percent'
+
+export type DocumentType = 'estimate' | 'statement_of_account' | 'payment_acknowledgment' | 'job_order'
+
+export type AttachmentType = 'image' | 'pdf' | 'docx' | 'xlsx' | 'video' | 'other'
+
+export type AttachmentParentType = 'work_order' | 'vehicle' | 'customer' | 'line_item'
 
 export interface Customer {
   id: string
@@ -74,17 +80,17 @@ export interface VehicleInsert {
 
 export type VehicleUpdate = Partial<VehicleInsert>
 
-export interface Job {
+export interface WorkOrder {
   id: string
   estimate_no: string
   vehicle_id: string
   customer_id: string | null
-  status: JobStatus
+  status: WorkOrderStatus
   payer_type: PayerType | null
   insurance_company: string | null
   insurance_policy_no: string | null
   insurance_claim_no: string | null
-  linked_job_id: string | null
+  linked_work_order_id: string | null
   date: string
   prepared_by: string | null
   odometer: number | null
@@ -102,18 +108,18 @@ export interface Job {
   customer?: Customer | null
   line_items?: LineItem[]
   payments?: Payment[]
-  linked_job?: Job | null
+  linked_work_order?: WorkOrder | null
 }
 
-export interface JobInsert {
+export interface WorkOrderInsert {
   vehicle_id: string
   customer_id?: string | null
-  status?: JobStatus
+  status?: WorkOrderStatus
   payer_type?: PayerType | null
   insurance_company?: string | null
   insurance_policy_no?: string | null
   insurance_claim_no?: string | null
-  linked_job_id?: string | null
+  linked_work_order_id?: string | null
   date?: string
   prepared_by?: string | null
   odometer?: number | null
@@ -124,11 +130,11 @@ export interface JobInsert {
   terms?: string | null
 }
 
-export type JobUpdate = Partial<JobInsert> & { status?: JobStatus }
+export type WorkOrderUpdate = Partial<WorkOrderInsert> & { status?: WorkOrderStatus }
 
 export interface LineItem {
   id: string
-  job_id: string
+  work_order_id: string
   category: LineItemCategory
   item: string
   specification: string | null
@@ -152,7 +158,7 @@ export interface LineItem {
 }
 
 export interface LineItemInsert {
-  job_id: string
+  work_order_id: string
   category: LineItemCategory
   item: string
   specification?: string | null
@@ -177,7 +183,7 @@ export interface Photo {
   url: string
   thumbnail_url: string | null
   vehicle_id: string | null
-  job_id: string | null
+  work_order_id: string | null
   line_item_id: string | null
   photo_type: 'before' | 'after' | 'damage' | 'vehicle_overview' | 'odometer'
   caption: string | null
@@ -192,7 +198,7 @@ export interface Photo {
 
 export interface Payment {
   id: string
-  job_id: string
+  work_order_id: string
   date: string
   amount: number
   payment_method: string
@@ -207,7 +213,7 @@ export interface Payment {
 }
 
 export interface PaymentInsert {
-  job_id: string
+  work_order_id: string
   date: string
   amount: number
   payment_method: string
@@ -218,11 +224,68 @@ export interface PaymentInsert {
 
 export type PaymentUpdate = Partial<PaymentInsert>
 
+export interface Document {
+  id: string
+  work_order_id: string
+  document_type: DocumentType
+  title: string | null
+  status: string
+  generated_at: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+  deleted_at: string | null
+}
+
+export interface DocumentInsert {
+  work_order_id: string
+  document_type: DocumentType
+  title?: string | null
+  status?: string
+  generated_at?: string | null
+}
+
+export interface ActivityLog {
+  id: string
+  work_order_id: string
+  event_type: string
+  description: string
+  metadata: Record<string, unknown> | null
+  created_at: string
+  created_by: string | null
+}
+
+export interface Attachment {
+  id: string
+  parent_type: AttachmentParentType
+  parent_id: string
+  attachment_type: AttachmentType
+  url: string
+  thumbnail_url: string | null
+  caption: string | null
+  file_size: number | null
+  mime_type: string | null
+  created_at: string
+  created_by: string | null
+  deleted_at: string | null
+}
+
 export interface DashboardStats {
   total_vehicles: number
-  active_jobs: number
+  active_work_orders: number
   total_customers: number
   monthly_revenue: number
-  jobs_by_status: { status: JobStatus; count: number }[]
-  recent_jobs: Job[]
+  work_orders_by_status: { status: WorkOrderStatus; count: number }[]
+  recent_work_orders: WorkOrder[]
 }
+
+// Backward-compatible type aliases
+/** @deprecated Use WorkOrder instead */
+export type Job = WorkOrder
+/** @deprecated Use WorkOrderInsert instead */
+export type JobInsert = WorkOrderInsert
+/** @deprecated Use WorkOrderUpdate instead */
+export type JobUpdate = WorkOrderUpdate
+/** @deprecated Use WorkOrderStatus instead */
+export type JobStatus = WorkOrderStatus

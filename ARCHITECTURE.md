@@ -1,8 +1,8 @@
 # TalyerLedger — Architecture & Implementation Guide
 
-> **Version:** 2.0.0  
+> **Version:** 2.1.0  
 > **Stack:** Next.js 16 + React 19 + Supabase + TypeScript  
-> **Status:** v2 Phase 0 & Phase 1 Complete — Ready for Phase 2+
+> **Status:** v2 Structural Redesign — Work Order / Document / Activity Timeline / Attachments
 
 ---
 
@@ -23,7 +23,7 @@
 
 ## 1. Project Overview
 
-TalyerLedger is a repair estimate, invoice, and vehicle record management system for automotive/machine repair shops. It provides complete CRUD for customers, vehicles, and jobs with soft deletes, audit trails, and Row Level Security.
+TalyerLedger is a repair estimate, invoice, and vehicle record management system for automotive/machine repair shops. It provides complete CRUD for customers, vehicles, and work orders (formerly "jobs") with soft deletes, audit trails, and Row Level Security.
 
 ### Tech Stack
 
@@ -134,7 +134,7 @@ src/
 │   ├── (dashboard)/              # Protected route group
 │   │   ├── customers/            # List, detail, new, edit
 │   │   ├── vehicles/             # List, detail, new, edit
-│   │   ├── jobs/                 # List, detail, new, edit, PDF
+│   │   ├── jobs/                 # List, detail, new, edit, PDF (route path, feature is work-orders)
 │   │   ├── settings/             # Shop settings
 │   │   ├── layout.tsx            # DashboardShell wrapper
 │   │   └── page.tsx              # Dashboard (stats, recent items, search)
@@ -144,17 +144,16 @@ src/
 ├── components/
 │   ├── forms/                    # Reusable form wrappers (Form, FormField, etc.)
 │   ├── layout/                   # DashboardShell, Header, Sidebar
-│   ├── pdf/                      # Job PDF generation (react-pdf) — Service Estimate / Statement of Account / Payment Acknowledgment
+│   ├── pdf/                      # Work Order PDF generation (react-pdf) — Service Estimate / Statement of Account / Payment Acknowledgment
 │   └── ui/                       # 19 shadcn/ui components
-├── db/migrations/                # 3 SQL migration files
+├── db/migrations/                # 5 SQL migration files
 ├── features/
 │   ├── auth/                     # Login, register, logout
 │   ├── customers/                # Customer CRUD + restore
 │   ├── vehicles/                 # Vehicle CRUD + restore
-│   ├── jobs/                     # Job CRUD + copy + restore
-│   ├── line-items/               # Line items CRUD + sync
-│   ├── payments/                 # Payment CRUD (actions, hooks, form, list)
-│   ├── photos/                   # Placeholder (Phase 2)
+│   ├── work-orders/              # Work Order CRUD + copy + restore (renamed from jobs)
+│   ├── line-items/               # Line items CRUD + sync (FK: work_order_id)
+│   ├── payments/                 # Payment CRUD (actions, hooks, form, list) (FK: work_order_id)
 │   ├── search/                   # Global search command palette
 │   └── settings/                 # Shop settings CRUD
 ├── hooks/
@@ -181,14 +180,15 @@ src/
 ```
 customers (1) ───< vehicles (N)
     │                    │
-    └──< jobs (N) ───────┘
+    └──< work_orders (N) ┘
             │
             ├──< line_items (N)
             ├──< payments (N)
-            └──< photos (N)
+            ├──< documents (N)
+            ├──< activity_logs (N)
+            └──< attachments (N)
 
-vehicles (1) ──< photos (N)
-line_items (1) ──< photos (N)
+work_orders — self-ref via linked_work_order_id
 
 shop_settings (single row)
 ```
@@ -197,12 +197,14 @@ shop_settings (single row)
 
 | Table | Key Fields | Relationships |
 |---|---|---|
-| `customers` | `id (UUID PK)`, `name`, `email`, `phone`, `address`, `notes`, `deleted_at` | FK to `vehicles`, `jobs` |
+| `customers` | `id (UUID PK)`, `name`, `email`, `phone`, `address`, `notes`, `deleted_at` | FK to `vehicles`, `work_orders` |
 | `vehicles` | `id (UUID PK)`, `customer_id`, `make`, `model`, `year`, `engine`, `transmission`, `vin`, `plate`, `color`, `cover_photo`, `deleted_at` | FK → `customers` |
-| `jobs` | `id (UUID PK)`, `estimate_no (UNIQUE)`, `vehicle_id`, `customer_id`, `status`, `payer_type`, `insurance_company`, `insurance_policy_no`, `insurance_claim_no`, `linked_job_id`, `date`, `currency`, `deleted_at` | FK → `vehicles`, `customers`, `jobs` (self-ref via linked_job_id) |
-| `line_items` | `id (UUID PK)`, `job_id`, `category`, `item`, `quantity`, `unit_price`, `line_total`, `is_inventory`, `deleted_at` | FK → `jobs` (CASCADE) |
-| `payments` | `id (UUID PK)`, `job_id`, `date`, `amount`, `payment_method`, `payment_type`, `reference_number`, `deleted_at` | FK → `jobs` (RESTRICT) |
-| `photos` | `id (UUID PK)`, `url`, `vehicle_id`, `job_id`, `line_item_id`, `photo_type`, `deleted_at` | FK → `vehicles`, `jobs`, `line_items` (CASCADE) |
+| `work_orders` | `id (UUID PK)`, `estimate_no (UNIQUE)`, `vehicle_id`, `customer_id`, `status`, `payer_type`, `insurance_company`, `insurance_policy_no`, `insurance_claim_no`, `linked_work_order_id`, `date`, `currency`, `deleted_at` | FK → `vehicles`, `customers`, `work_orders` (self-ref) |
+| `line_items` | `id (UUID PK)`, `work_order_id`, `category`, `item`, `quantity`, `unit_price`, `line_total`, `is_inventory`, `deleted_at` | FK → `work_orders` (CASCADE) |
+| `payments` | `id (UUID PK)`, `work_order_id`, `date`, `amount`, `payment_method`, `payment_type`, `reference_number`, `deleted_at` | FK → `work_orders` (RESTRICT) |
+| `documents` | `id (UUID PK)`, `work_order_id`, `document_type`, `label`, `generated_at`, `file_url`, `created_by` | FK → `work_orders` |
+| `activity_logs` | `id (UUID PK)`, `work_order_id`, `event`, `description`, `metadata (jsonb)`, `created_by` | FK → `work_orders` |
+| `attachments` | `id (UUID PK)`, `parent_type`, `parent_id`, `file_url`, `file_type`, `file_name`, `file_size`, `notes` | Polymorphic via parent_type+parent_id |
 | `shop_settings` | `id (UUID PK)`, `shop_name`, `address`, `contact`, `email`, `tin`, `dti_bn`, `business_permit`, `tax_id` | Single-row config |
 
 ### Common Columns
@@ -216,24 +218,24 @@ All core tables include:
 
 ### RLS Policies
 
-All 7 tables have `ENABLE ROW LEVEL SECURITY` with:
-- **SELECT:** `deleted_at IS NULL` (active records only)
+All tables have `ENABLE ROW LEVEL SECURITY` with:
+- **SELECT:** Authenticated users (active records only where applicable)
 - **INSERT:** Authenticated users
 - **UPDATE:** Authenticated users
 - **Storage:** 4 policies on `photos` bucket (SELECT, INSERT, UPDATE, DELETE)
 
-### Job Status Enum
+### Work Order Status Enum
 
 ```
 draft → estimate → approved → invoiced → partially_paid → paid → closed
-voided (can be set from any status to mark job as cancelled/void)
+voided (can be set from any status to mark work order as cancelled/void)
 ```
 
 ### Estimate Number Format
 
 `YY-MMDD-000001` — auto-generated with yearly reset.
 
-Example: `26-0717-000042` (42nd job in 2026)
+Example: `26-0717-000042` (42nd work order in 2026)
 
 ---
 
@@ -356,17 +358,17 @@ Component → Form (react-hook-form + zodResolver)
 ### Phase 1 — Foundation
 
 | Requirement | Status | Notes |
-|---|---|---|
+|---|---|---|---|
 | Login/Logout/Session/Protected | ✅ | Middleware renamed to `middleware.ts` |
 | Customer CRUD + soft delete + restore | ✅ | All operations + `restoreCustomer()` |
 | Vehicle CRUD + soft delete + restore | ✅ | All operations + `restoreVehicle()` |
-| Job CRUD + soft delete + restore | ✅ | All operations + `restoreJob()` + copy |
-| All job statuses in tabs | ✅ | draft, estimate, approved, invoiced, partially_paid, paid, closed |
+| Work Order CRUD + soft delete + restore | ✅ | All operations + `restoreWorkOrder()` + copy (renamed from Job) |
+| All work order statuses in tabs | ✅ | draft, estimate, approved, invoiced, partially_paid, paid, closed |
 | Cover photo in vehicle form | ✅ | URL input + detail page display |
-| Dashboard — Recent Jobs | ✅ | Top 5 with links |
+| Dashboard — Recent Work Orders | ✅ | Top 5 with links |
 | Dashboard — Recent Vehicles | ✅ | Top 5 with links and details |
-| Dashboard — Outstanding Jobs | ✅ | Non-paid/non-closed with links |
-| Dashboard — Revenue Summary | ✅ | Total from invoiced + paid jobs |
+| Dashboard — Outstanding Work Orders | ✅ | Non-paid/non-closed with links |
+| Dashboard — Revenue Summary | ✅ | Total from invoiced + paid work orders |
 | Dashboard — Quick Actions | ✅ | Create Estimate, Add Vehicle, Add Customer |
 | Global Search | ✅ | Ctrl+K command palette (customer, plate, VIN, estimate) |
 | Toast notifications | ✅ | `use-toast` hook + `Toaster` in root layout |
@@ -382,15 +384,26 @@ Component → Form (react-hook-form + zodResolver)
 
 | Requirement | Status | Notes |
 |---|---|---|
-| Voided job status | ✅ | Added to enum, JOB_STATUSES, job list tabs, filtered from dashboard |
-| Payer type (customer/insurance/both) | ✅ | `payer_type` on jobs table + form + detail display |
-| Insurance fields | ✅ | `insurance_company`, `insurance_policy_no`, `insurance_claim_no` on jobs |
-| Linked job (self-referencing FK) | ✅ | `linked_job_id` on jobs, shown in detail with link |
+| Voided status | ✅ | Added to enum, JOB_STATUSES, job list tabs, filtered from dashboard |
+| Payer type (customer/insurance/both) | ✅ | `payer_type` on work_orders table + form + detail display |
+| Insurance fields | ✅ | `insurance_company`, `insurance_policy_no`, `insurance_claim_no` on work_orders |
+| Linked work order (self-referencing FK) | ✅ | `linked_work_order_id` on work_orders, shown in detail with link |
 | Payment type (deposit/regular) | ✅ | `payment_type` on payments table + form |
 | Payments module (full CRUD) | ✅ | actions, schemas, hooks, form, list — replaces placeholder |
 | PDF labeling | ✅ | "Service Estimate" for draft/estimate, "Payment Acknowledgment" for paid, "Statement of Account" for others |
 | Business Registration fields | ✅ | TIN, DTI/BN, Business Permit in shop_settings + settings UI + PDF |
 | Migration 00004 | ✅ | All schema changes reversible |
+
+### v2 Structural Redesign
+
+| Requirement | Status | Notes |
+|---|---|---|
+| Rename `jobs` → `work_orders` | ✅ | Table, feature folder, all TypeScript types renamed; backward-compat `type Job = WorkOrder` alias |
+| Rename FK columns | ✅ | `job_id` → `work_order_id` on `line_items`, `payments`; `linked_job_id` → `linked_work_order_id` on `work_orders` |
+| `documents` table | ✅ | Printable document records with `work_order_id`, `document_type`, `label`, `generated_at`, `file_url` — UI not yet built |
+| `activity_logs` table | ✅ | Event timeline with `work_order_id`, `event`, `description`, `metadata (jsonb)` — UI not yet built |
+| `attachments` table | ✅ | Polymorphic attachments replacing `photos` table: `parent_type` + `parent_id`, `file_url`, `file_type`, `file_name`, `file_size` |
+| Migration 00005 | ✅ | Full reversible migration: rename jobs→work_orders, indexes/triggers renamed, new tables with RLS
 
 ---
 
@@ -400,14 +413,17 @@ Component → Form (react-hook-form + zodResolver)
 |---|---|---|
 | `00001_initial_schema.sql` | Core schema: 4 enums, 7 tables, RLS, triggers, indexes | Applied |
 | `00002_line_items_enhancements.sql` | Discount columns: discount_type, discount_value | Applied |
-| `00003_photos_audit_storage.sql` | Photos updated_at/updated_by, shop_settings created_by, storage RLS | **Needs to be applied** |
-| `00004_v2_enhancements.sql` | Voided status (enum), payer_type, insurance_*, linked_job_id on jobs; payment_type on payments; TIN/DTI/permit on shop_settings | **Needs to be applied** |
+| `00003_photos_audit_storage.sql` | Photos updated_at/updated_by, shop_settings created_by, storage RLS | Applied |
+| `00004_v2_enhancements.sql` | Voided status (enum), payer_type, insurance_*, linked_job_id on jobs; payment_type on payments; TIN/DTI/permit on shop_settings | Applied |
+| `00005_work_order_document_attachment.sql` | Rename jobs→work_orders, FK column renames (job_id→work_order_id, linked_job_id→linked_work_order_id), indexes/triggers renamed; new tables: documents, activity_logs, attachments (polymorphic, replaces photos) | **Needs to be applied** |
 
-To apply migrations:
+### Migration Order
+
 ```sql
 -- Run sequentially in Supabase SQL Editor
 -- 1. 00003 (if not yet applied)
--- 2. 00004
+-- 2. 00004 (MUST be applied before 00005)
+-- 3. 00005
 ```
 
 ---
@@ -417,13 +433,13 @@ To apply migrations:
 ### Current Status
 
 ```
-npm run lint       → 0 errors, 4 warnings (React Compiler compatibility)
+npm run lint       → 0 errors, 5 warnings (React Compiler compatibility)
 npx tsc --noEmit   → 0 errors
 ```
 
-### The 4 warnings are all pre-existing and non-blocking:
+### The 5 warnings are all pre-existing and non-blocking:
 - 1x `react-hooks/exhaustive-deps` — `lineItems` in useMemo deps
-- 3x `react-hooks/incompatible-library` — React Hook Form `watch()` is not memoizable by React Compiler
+- 4x `react-hooks/incompatible-library` — React Hook Form `watch()` is not memoizable by React Compiler
 
 ### Package Scripts
 
@@ -441,12 +457,15 @@ npx tsc --noEmit   → 0 errors
 | Feature | Current Support |
 |---|---|---|
 | Inventory | ✅ `is_inventory` on line_items |
-| Photo uploads | ✅ Schema, storage bucket, RLS in migration 00003 |
+| Attachments (replaces photos) | ✅ `attachments` table (polymorphic), `photos` table deprecated; storage bucket + UI not yet built |
+| Document printing / PDF | ✅ `documents` table schema for tracking generated PDFs; PDF generation via react-pdf; UI for document list not yet built |
+| Activity Timeline | ✅ `activity_logs` table with metadata (jsonb); UI not yet built |
 | Payments ledger | ✅ Full CRUD with payment_type (deposit/regular) |
 | Business Registration | ✅ TIN, DTI/BN, Business Permit on settings + PDF |
-| Voided Jobs | ✅ Voided status, excluded from dashboard, filtered in list |
+| Voided Work Orders | ✅ Voided status, excluded from dashboard, filtered in list |
 | Insurance/Warranty | ✅ payer_type, insurance_company, policy_no, claim_no |
-| Linked Jobs | ✅ Self-referencing FK on jobs, displayed in detail |
+| Linked Work Orders | ✅ Self-referencing FK on work_orders, displayed in detail |
+| Document Labels | ✅ `getDocumentLabel()` resolves to "Service Estimate", "Statement of Account", "Payment Acknowledgment" by status |
 | Multiple users | ⚠️ Single-tenant RLS; needs tenant_id |
 | Multiple workshops | ⚠️ Single shop_settings; needs workshop_id |
 | VIN scanning | ⚠️ VIN field exists |

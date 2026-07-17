@@ -30,12 +30,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import type { LineItem } from '@/lib/types'
 
 interface LineItemTableProps {
-  jobId: string
+  workOrderId: string
   currency?: string
 }
 
-export function LineItemTable({ jobId, currency = 'PHP' }: LineItemTableProps) {
-  const { data: lineItems, isLoading, error } = useLineItems(jobId)
+export function LineItemTable({ workOrderId, currency = 'PHP' }: LineItemTableProps) {
+  const { data: lineItems, isLoading, error } = useLineItems(workOrderId)
   const deleteLineItem = useDeleteLineItem()
   const [editingItem, setEditingItem] = useState<LineItem | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -63,7 +63,7 @@ export function LineItemTable({ jobId, currency = 'PHP' }: LineItemTableProps) {
   async function handleDelete() {
     if (!deleteId) return
     try {
-      await deleteLineItem.mutateAsync({ id: deleteId, jobId })
+      await deleteLineItem.mutateAsync({ id: deleteId, workOrderId })
     } finally {
       setDeleteId(null)
     }
@@ -181,7 +181,7 @@ export function LineItemTable({ jobId, currency = 'PHP' }: LineItemTableProps) {
             <DialogTitle>Add Line Item</DialogTitle>
           </DialogHeader>
           <LineItemForm
-            jobId={jobId}
+            workOrderId={workOrderId}
             onSuccess={() => setShowAddForm(false)}
             onCancel={() => setShowAddForm(false)}
           />
@@ -198,7 +198,7 @@ export function LineItemTable({ jobId, currency = 'PHP' }: LineItemTableProps) {
           </DialogHeader>
           {editingItem && (
             <LineItemForm
-              jobId={jobId}
+              workOrderId={workOrderId}
               defaultValues={editingItem}
               onSuccess={() => setEditingItem(null)}
               onCancel={() => setEditingItem(null)}

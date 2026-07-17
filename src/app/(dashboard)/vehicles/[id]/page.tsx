@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Pencil, Plus, Wrench } from 'lucide-react'
 import { useVehicle } from '@/features/vehicles/hooks/use-vehicles'
-import { useJobsByVehicle } from '@/features/jobs/hooks/use-jobs'
-import { JobStatusBadge } from '@/features/jobs/components/job-status-badge'
+import { useWorkOrdersByVehicle } from '@/features/work-orders/hooks/use-work-orders'
+import { WorkOrderStatusBadge } from '@/features/work-orders/components/work-order-status-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,7 +18,7 @@ export default function VehicleDetailPage() {
   const router = useRouter()
   const id = params.id as string
   const { data: vehicle, isLoading, error } = useVehicle(id)
-  const { data: jobs, isLoading: loadingJobs } = useJobsByVehicle(id)
+  const { data: workOrders, isLoading: loadingJobs } = useWorkOrdersByVehicle(id)
 
   if (isLoading) {
     return <VehicleDetailSkeleton />
@@ -176,7 +176,7 @@ export default function VehicleDetailPage() {
                 <Skeleton key={i} className="h-10 w-full" />
               ))}
             </div>
-          ) : !jobs || jobs.length === 0 ? (
+          ) : !workOrders || workOrders.length === 0 ? (
             <div className="text-center py-8">
               <Wrench className="mx-auto h-8 w-8 text-muted-foreground" />
               <p className="mt-2 text-sm text-muted-foreground">No service history yet.</p>
@@ -192,21 +192,21 @@ export default function VehicleDetailPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {jobs.map((job) => (
-                  <TableRow key={job.id}>
+                {workOrders.map((wo) => (
+                  <TableRow key={wo.id}>
                     <TableCell>
-                      <Link href={`/jobs/${job.id}`} className="font-medium hover:underline">
-                        {job.estimate_no}
+                      <Link href={`/jobs/${wo.id}`} className="font-medium hover:underline">
+                        {wo.estimate_no}
                       </Link>
                     </TableCell>
-                    <TableCell>{formatDate(job.date)}</TableCell>
+                    <TableCell>{formatDate(wo.date)}</TableCell>
                     <TableCell>
-                      <JobStatusBadge status={job.status} />
+                      <WorkOrderStatusBadge status={wo.status} />
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       {formatCurrency(
-                        job.line_items ? calculateJobTotal(job.line_items) : 0,
-                        job.currency
+                        wo.line_items ? calculateJobTotal(wo.line_items) : 0,
+                        wo.currency
                       )}
                     </TableCell>
                   </TableRow>

@@ -4,10 +4,10 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Pencil, Copy, FileText } from 'lucide-react'
-import { useJob, useCopyJob } from '@/features/jobs/hooks/use-jobs'
-import { useUpdateJob } from '@/features/jobs/hooks/use-jobs'
+import { useWorkOrder, useCopyWorkOrder } from '@/features/work-orders/hooks/use-work-orders'
+import { useUpdateWorkOrder } from '@/features/work-orders/hooks/use-work-orders'
 import { useShopSettings } from '@/features/settings/hooks/use-settings'
-import { JobStatusBadge } from '@/features/jobs/components/job-status-badge'
+import { WorkOrderStatusBadge } from '@/features/work-orders/components/work-order-status-badge'
 import { LineItemTable } from '@/features/line-items/components/line-item-table'
 import { PaymentList } from '@/features/payments/components/payment-list'
 
@@ -21,37 +21,37 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
-import type { JobStatus } from '@/lib/types'
+import type { WorkOrderStatus } from '@/lib/types'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDate } from '@/lib/utils'
 import { JOB_STATUSES } from '@/lib/constants'
 
-export default function JobDetailPage() {
+export default function WorkOrderDetailPage() {
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
-  const { data: job, isLoading, error } = useJob(id)
-  const updateJob = useUpdateJob()
-  const copyJob = useCopyJob()
+  const { data: workOrder, isLoading, error } = useWorkOrder(id)
+  const updateWorkOrder = useUpdateWorkOrder()
+  const copyWorkOrder = useCopyWorkOrder()
   const { data: shopSettings } = useShopSettings()
 
   if (isLoading) {
-    return <JobDetailSkeleton />
+    return <WorkOrderDetailSkeleton />
   }
 
-  if (error || !job) {
+  if (error || !workOrder) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500">Failed to load job.</p>
+        <p className="text-red-500">Failed to load work order.</p>
         <Button variant="outline" className="mt-4" onClick={() => router.push('/jobs')}>
-          Back to Jobs
+          Back to Work Orders
         </Button>
       </div>
     )
   }
 
   async function handleStatusChange(status: string) {
-    await updateJob.mutateAsync({ id, data: { status: status as JobStatus } })
+    await updateWorkOrder.mutateAsync({ id, data: { status: status as WorkOrderStatus } })
   }
 
   return (
@@ -63,14 +63,14 @@ export default function JobDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight">{job.estimate_no}</h1>
-              <JobStatusBadge status={job.status} />
+              <h1 className="text-2xl font-bold tracking-tight">{workOrder.estimate_no}</h1>
+              <WorkOrderStatusBadge status={workOrder.status} />
             </div>
-            <p className="text-muted-foreground">{formatDate(job.date)}</p>
+            <p className="text-muted-foreground">{formatDate(workOrder.date)}</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Select value={job.status} onValueChange={handleStatusChange}>
+          <Select value={workOrder.status} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -86,104 +86,103 @@ export default function JobDetailPage() {
             variant="outline"
             onClick={async () => {
               try {
-                const newJob = await copyJob.mutateAsync(id)
-                router.push(`/jobs/${newJob.id}`)
+                const wo = await copyWorkOrder.mutateAsync(id)
+                router.push(`/jobs/${wo.id}`)
               } catch {
-                // error toast handled by mutation
               }
             }}
-            disabled={copyJob.isPending}
+            disabled={copyWorkOrder.isPending}
           >
             <Copy className="mr-2 h-4 w-4" />
-            {copyJob.isPending ? 'Copying...' : 'Make a Copy'}
+            {copyWorkOrder.isPending ? 'Copying...' : 'Make a Copy'}
           </Button>
           <Button asChild variant="outline">
             <Link href={`/jobs/${id}/edit`}>
               <Pencil className="mr-2 h-4 w-4" /> Edit
             </Link>
           </Button>
-          <DownloadPdfButton job={job} shopSettings={shopSettings} />
+          <DownloadPdfButton job={workOrder} shopSettings={shopSettings} />
         </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Job Information</CardTitle>
+            <CardTitle>Work Order Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Date</span>
-              <span>{formatDate(job.date)}</span>
+              <span>{formatDate(workOrder.date)}</span>
             </div>
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Prepared By</span>
-              <span>{job.prepared_by || '-'}</span>
+              <span>{workOrder.prepared_by || '-'}</span>
             </div>
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Currency</span>
-              <span>{job.currency}</span>
+              <span>{workOrder.currency}</span>
             </div>
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Odometer</span>
-              <span>{job.odometer ? `${job.odometer.toLocaleString()} km` : '-'}</span>
+              <span>{workOrder.odometer ? `${workOrder.odometer.toLocaleString()} km` : '-'}</span>
             </div>
-            {job.payer_type && (
+            {workOrder.payer_type && (
               <>
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Payer Type</span>
-                  <span className="capitalize">{job.payer_type}</span>
+                  <span className="capitalize">{workOrder.payer_type}</span>
                 </div>
               </>
             )}
-            {(job.payer_type === 'insurance' || job.payer_type === 'both') && (
+            {(workOrder.payer_type === 'insurance' || workOrder.payer_type === 'both') && (
               <>
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Insurance</span>
-                  <span>{job.insurance_company || '-'}</span>
+                  <span>{workOrder.insurance_company || '-'}</span>
                 </div>
-                {job.insurance_policy_no && (
+                {workOrder.insurance_policy_no && (
                   <>
                     <Separator />
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Policy No.</span>
-                      <span>{job.insurance_policy_no}</span>
+                      <span>{workOrder.insurance_policy_no}</span>
                     </div>
                   </>
                 )}
-                {job.insurance_claim_no && (
+                {workOrder.insurance_claim_no && (
                   <>
                     <Separator />
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Claim No.</span>
-                      <span>{job.insurance_claim_no}</span>
+                      <span>{workOrder.insurance_claim_no}</span>
                     </div>
                   </>
                 )}
               </>
             )}
-            {job.linked_job_id && (
+            {workOrder.linked_work_order_id && (
               <>
                 <Separator />
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Linked Job</span>
-                  <Link href={`/jobs/${job.linked_job_id}`} className="hover:underline text-blue-600">
-                    {job.linked_job?.estimate_no || job.linked_job_id}
+                  <span className="text-muted-foreground">Linked Work Order</span>
+                  <Link href={`/jobs/${workOrder.linked_work_order_id}`} className="hover:underline text-blue-600">
+                    {workOrder.linked_work_order?.estimate_no || workOrder.linked_work_order_id}
                   </Link>
                 </div>
               </>
             )}
-            {job.notes && (
+            {workOrder.notes && (
               <>
                 <Separator />
                 <div className="flex flex-col gap-1">
                   <span className="text-muted-foreground">Notes</span>
-                  <span>{job.notes}</span>
+                  <span>{workOrder.notes}</span>
                 </div>
               </>
             )}
@@ -197,9 +196,9 @@ export default function JobDetailPage() {
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Customer</span>
-              {job.customer ? (
-                <Link href={`/customers/${job.customer.id}`} className="hover:underline">
-                  {job.customer.name}
+              {workOrder.customer ? (
+                <Link href={`/customers/${workOrder.customer.id}`} className="hover:underline">
+                  {workOrder.customer.name}
                 </Link>
               ) : (
                 <span>-</span>
@@ -208,25 +207,25 @@ export default function JobDetailPage() {
             <Separator />
             <div className="flex justify-between">
               <span className="text-muted-foreground">Vehicle</span>
-              {job.vehicle ? (
-                <Link href={`/vehicles/${job.vehicle.id}`} className="hover:underline">
-                  {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
+              {workOrder.vehicle ? (
+                <Link href={`/vehicles/${workOrder.vehicle.id}`} className="hover:underline">
+                  {workOrder.vehicle.year} {workOrder.vehicle.make} {workOrder.vehicle.model}
                 </Link>
               ) : (
                 <span>-</span>
               )}
             </div>
-            {job.vehicle && (
+            {workOrder.vehicle && (
               <>
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Plate</span>
-                  <span>{job.vehicle.plate || '-'}</span>
+                  <span>{workOrder.vehicle.plate || '-'}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">VIN</span>
-                  <span className="font-mono text-xs">{job.vehicle.vin || '-'}</span>
+                  <span className="font-mono text-xs">{workOrder.vehicle.vin || '-'}</span>
                 </div>
               </>
             )}
@@ -241,7 +240,7 @@ export default function JobDetailPage() {
           <TabsTrigger value="payments">Payments</TabsTrigger>
         </TabsList>
           <TabsContent value="line-items" className="space-y-4">
-          <LineItemTable jobId={id} currency={job.currency} />
+          <LineItemTable workOrderId={id} currency={workOrder.currency} />
         </TabsContent>
         <TabsContent value="photos">
           <Card>
@@ -254,7 +253,7 @@ export default function JobDetailPage() {
         <TabsContent value="payments">
           <Card>
             <CardContent className="pt-6">
-              <PaymentList jobId={id} currency={job.currency} />
+              <PaymentList workOrderId={id} currency={workOrder.currency} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -263,7 +262,7 @@ export default function JobDetailPage() {
   )
 }
 
-function JobDetailSkeleton() {
+function WorkOrderDetailSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

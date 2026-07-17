@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
-import { JobForm } from '@/features/jobs/components/job-form'
+import { WorkOrderForm } from '@/features/work-orders/components/work-order-form'
 import { Button } from '@/components/ui/button'
 
 export default function NewJobPage() {
@@ -21,7 +21,7 @@ export default function NewJobPage() {
           <p className="text-muted-foreground">Create a new estimate or job order</p>
         </div>
       </div>
-      <JobForm
+      <WorkOrderForm
         defaultValues={vehicleId ? { vehicle_id: vehicleId } : undefined}
         onSuccess={() => router.push('/jobs')}
         onCancel={() => router.push('/jobs')}

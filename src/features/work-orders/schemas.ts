@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { JOB_STATUSES, CURRENCIES } from '@/lib/constants'
 import { lineItemFormSchema } from '@/features/line-items/schemas'
 
-export const jobFormSchema = z.object({
+export const workOrderFormSchema = z.object({
   vehicle_id: z.string().min(1, 'Vehicle is required'),
   customer_id: z.string().optional().or(z.literal('')),
   status: z.enum(JOB_STATUSES.map((s) => s.value) as [string, ...string[]]),
@@ -10,7 +10,7 @@ export const jobFormSchema = z.object({
   insurance_company: z.string().optional().or(z.literal('')),
   insurance_policy_no: z.string().optional().or(z.literal('')),
   insurance_claim_no: z.string().optional().or(z.literal('')),
-  linked_job_id: z.string().optional().or(z.literal('')),
+  linked_work_order_id: z.string().optional().or(z.literal('')),
   date: z.string().min(1, 'Date is required'),
   prepared_by: z.string().optional().or(z.literal('')),
   odometer: z.coerce.number().optional(),
@@ -22,4 +22,4 @@ export const jobFormSchema = z.object({
   line_items: z.array(lineItemFormSchema),
 })
 
-export type JobFormValues = z.infer<typeof jobFormSchema>
+export type WorkOrderFormValues = z.infer<typeof workOrderFormSchema>

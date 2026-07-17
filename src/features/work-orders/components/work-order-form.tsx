@@ -5,10 +5,10 @@ import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { Plus, Trash2, ArrowUp, ArrowDown, GripVertical } from 'lucide-react'
-import { jobFormSchema, type JobFormValues } from '../schemas'
-import { useCreateJob, useUpdateJob } from '../hooks/use-jobs'
+import { workOrderFormSchema, type WorkOrderFormValues } from '../schemas'
+import { useCreateWorkOrder, useUpdateWorkOrder } from '../hooks/use-work-orders'
 import { syncLineItems } from '@/features/line-items/actions'
-import { getPaymentsTotal } from '@/features/jobs/actions'
+import { getPaymentsTotal } from '@/features/work-orders/actions'
 import { useCustomers } from '@/features/customers/hooks/use-customers'
 import { useVehicles } from '@/features/vehicles/hooks/use-vehicles'
 import { JOB_STATUSES, CURRENCIES, LINE_ITEM_CATEGORIES, INSTALLATION_STATUSES, PAYER_TYPES } from '@/lib/constants'
@@ -36,10 +36,10 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { UnitCombobox } from '@/components/ui/unit-combobox'
 import { Separator } from '@/components/ui/separator'
-import type { Job, JobStatus, CurrencyCode, LineItemCategory, DiscountType, PayerType } from '@/lib/types'
+import type { WorkOrder, WorkOrderStatus, CurrencyCode, LineItemCategory, DiscountType, PayerType } from '@/lib/types'
 
-interface JobFormProps {
-  defaultValues?: Partial<Job>
+interface WorkOrderFormProps {
+  defaultValues?: Partial<WorkOrder>
   onSuccess?: () => void
   onCancel?: () => void
 }
@@ -64,9 +64,9 @@ const INSTALLATION_STYLE: Record<string, string> = {
   na: 'bg-gray-100 text-gray-800 border-gray-300',
 }
 
-export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
-  const createJob = useCreateJob()
-  const updateJob = useUpdateJob()
+export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderFormProps) {
+  const createWorkOrder = useCreateWorkOrder()
+  const updateWorkOrder = useUpdateWorkOrder()
   const { customers } = useCustomers()
   const { data: vehicles } = useVehicles()
   const isEditing = !!defaultValues?.id
@@ -77,8 +77,8 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
     enabled: !!defaultValues?.id,
   })
 
-  const form = useForm<JobFormValues>({
-    resolver: zodResolver(jobFormSchema),
+  const form = useForm<WorkOrderFormValues>({
+    resolver: zodResolver(workOrderFormSchema),
     defaultValues: defaultValues
       ? {
           vehicle_id: defaultValues.vehicle_id || '',
@@ -88,7 +88,7 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
           insurance_company: defaultValues.insurance_company || '',
           insurance_policy_no: defaultValues.insurance_policy_no || '',
           insurance_claim_no: defaultValues.insurance_claim_no || '',
-          linked_job_id: defaultValues.linked_job_id || '',
+          linked_work_order_id: defaultValues.linked_work_order_id || '',
           date: (defaultValues.date || new Date().toISOString()).split('T')[0],
           prepared_by: defaultValues.prepared_by || '',
           odometer: defaultValues.odometer ?? undefined,
@@ -120,7 +120,7 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
           insurance_company: '',
           insurance_policy_no: '',
           insurance_claim_no: '',
-          linked_job_id: '',
+          linked_work_order_id: '',
           date: new Date().toISOString().split('T')[0],
           prepared_by: '',
           odometer: undefined,
@@ -152,7 +152,6 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
   const overallDiscType = useWatch({ control, name: 'overall_discount_type' })
   const overallDiscVal = useWatch({ control, name: 'overall_discount_value' })
 
-  // Auto-populate customer when vehicle is selected
   useEffect(() => {
     if (selectedVehicleId && vehicles) {
       const vehicle = vehicles.find((v) => v.id === selectedVehicleId)
@@ -223,16 +222,16 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
     })
   }, [append, fields.length])
 
-  async function onSubmit(data: JobFormValues) {
+  async function onSubmit(data: WorkOrderFormValues) {
     const headerPayload = {
       vehicle_id: data.vehicle_id,
       customer_id: data.customer_id || null,
-      status: data.status as JobStatus,
+      status: data.status as WorkOrderStatus,
       payer_type: (data.payer_type || null) as PayerType | null,
       insurance_company: data.insurance_company || null,
       insurance_policy_no: data.insurance_policy_no || null,
       insurance_claim_no: data.insurance_claim_no || null,
-      linked_job_id: data.linked_job_id || null,
+      linked_work_order_id: data.linked_work_order_id || null,
       date: data.date,
       prepared_by: data.prepared_by || null,
       odometer: data.odometer ?? null,
@@ -261,26 +260,24 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
 
     try {
       if (isEditing && defaultValues?.id) {
-        await updateJob.mutateAsync({ id: defaultValues.id, data: headerPayload })
+        await updateWorkOrder.mutateAsync({ id: defaultValues.id, data: headerPayload })
         await syncLineItems(defaultValues.id, lineItemsPayload)
       } else {
-        const newJob = await createJob.mutateAsync(headerPayload)
+        const newWorkOrder = await createWorkOrder.mutateAsync(headerPayload)
         if (lineItemsPayload.length > 0) {
-          await syncLineItems(newJob.id, lineItemsPayload)
+          await syncLineItems(newWorkOrder.id, lineItemsPayload)
         }
       }
       onSuccess?.()
     } catch {
-      // Error handled by mutation toasts
     }
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Header section - preserved unchanged */}
       <Card>
         <CardHeader>
-          <CardTitle>Job Information</CardTitle>
+          <CardTitle>Work Order Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -337,7 +334,7 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
               <Label htmlFor="status">Status</Label>
               <Select
                 value={form.watch('status')}
-                onValueChange={(value) => setValue('status', value as JobFormValues['status'])}
+                onValueChange={(value) => setValue('status', value as WorkOrderFormValues['status'])}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -366,7 +363,7 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
             <Label htmlFor="currency">Currency</Label>
             <Select
               value={form.watch('currency')}
-              onValueChange={(value) => setValue('currency', value as JobFormValues['currency'])}
+              onValueChange={(value) => setValue('currency', value as WorkOrderFormValues['currency'])}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -426,7 +423,6 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
         </Card>
       )}
 
-      {/* Line Items Section */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Line Items</CardTitle>
@@ -648,14 +644,12 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
         </CardContent>
       </Card>
 
-      {/* Job Summary Panel */}
       <Card>
         <CardHeader>
           <CardTitle>Job Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Category Totals */}
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-muted-foreground">Category Totals</h4>
               <div className="space-y-1">
@@ -680,7 +674,6 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
               </div>
             </div>
 
-            {/* Overall Discount and Totals */}
             <div className="space-y-3">
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold text-muted-foreground">Overall Discount</h4>
@@ -753,7 +746,6 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
         </CardContent>
       </Card>
 
-      {/* Notes & Terms - preserved unchanged */}
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="notes">Notes</Label>
@@ -765,7 +757,6 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
         </div>
       </div>
 
-      {/* Submit Buttons */}
       <div className="flex gap-2 justify-end">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>

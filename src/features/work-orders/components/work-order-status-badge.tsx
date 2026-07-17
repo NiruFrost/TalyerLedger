@@ -2,13 +2,13 @@
 
 import { JOB_STATUSES } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import type { JobStatus } from '@/lib/types'
+import type { WorkOrderStatus } from '@/lib/types'
 
-interface JobStatusBadgeProps {
-  status: JobStatus
+interface WorkOrderStatusBadgeProps {
+  status: WorkOrderStatus
 }
 
-export function JobStatusBadge({ status }: JobStatusBadgeProps) {
+export function WorkOrderStatusBadge({ status }: WorkOrderStatusBadgeProps) {
   const jobStatus = JOB_STATUSES.find((s) => s.value === status)
 
   return (

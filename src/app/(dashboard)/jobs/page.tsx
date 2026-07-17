@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import { JobTable } from '@/features/jobs/components/job-table'
+import { WorkOrderTable } from '@/features/work-orders/components/work-order-table'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
@@ -38,7 +38,7 @@ export default function JobsPage() {
           <TabsTrigger value="voided">Voided</TabsTrigger>
         </TabsList>
         <TabsContent value={filter} className="mt-4">
-          <JobTable filter={filter} onEdit={(id) => router.push(`/jobs/${id}/edit`)} />
+          <WorkOrderTable filter={filter} onEdit={(id: string) => router.push(`/jobs/${id}/edit`)} />
         </TabsContent>
       </Tabs>
     </div>

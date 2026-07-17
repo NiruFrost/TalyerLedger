@@ -15,12 +15,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import type { Payment } from '@/lib/types'
 
 interface PaymentListProps {
-  jobId: string
+  workOrderId: string
   currency?: string
 }
 
-export function PaymentList({ jobId, currency = 'PHP' }: PaymentListProps) {
-  const { data: payments, isLoading, error } = usePayments(jobId)
+export function PaymentList({ workOrderId, currency = 'PHP' }: PaymentListProps) {
+  const { data: payments, isLoading, error } = usePayments(workOrderId)
   const deletePayment = useDeletePayment()
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null)
@@ -50,7 +50,7 @@ export function PaymentList({ jobId, currency = 'PHP' }: PaymentListProps) {
   async function handleDelete() {
     if (!deleteId) return
     try {
-      await deletePayment.mutateAsync({ id: deleteId, jobId })
+      await deletePayment.mutateAsync({ id: deleteId, workOrderId })
     } finally {
       setDeleteId(null)
     }
@@ -140,7 +140,7 @@ export function PaymentList({ jobId, currency = 'PHP' }: PaymentListProps) {
             <DialogTitle>Add Payment</DialogTitle>
           </DialogHeader>
           <PaymentForm
-            jobId={jobId}
+            workOrderId={workOrderId}
             onSuccess={() => setShowAddForm(false)}
             onCancel={() => setShowAddForm(false)}
           />
@@ -157,7 +157,7 @@ export function PaymentList({ jobId, currency = 'PHP' }: PaymentListProps) {
           </DialogHeader>
           {editingPayment && (
             <PaymentForm
-              jobId={jobId}
+              workOrderId={workOrderId}
               defaultValues={editingPayment}
               onSuccess={() => setEditingPayment(null)}
               onCancel={() => setEditingPayment(null)}

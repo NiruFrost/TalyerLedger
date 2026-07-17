@@ -60,6 +60,44 @@ export const PAYMENT_TYPES = [
   { value: 'regular', label: 'Regular Payment' },
 ] as const
 
+export const DOCUMENT_TYPES = [
+  { value: 'estimate', label: 'Service Estimate' },
+  { value: 'statement_of_account', label: 'Statement of Account' },
+  { value: 'payment_acknowledgment', label: 'Payment Acknowledgment' },
+  { value: 'job_order', label: 'Job Order' },
+] as const
+
+export const ATTACHMENT_TYPES = [
+  { value: 'image', label: 'Image' },
+  { value: 'pdf', label: 'PDF' },
+  { value: 'docx', label: 'Document' },
+  { value: 'xlsx', label: 'Spreadsheet' },
+  { value: 'video', label: 'Video' },
+  { value: 'other', label: 'Other' },
+] as const
+
+export const ATTACHMENT_PARENT_TYPES = [
+  { value: 'work_order', label: 'Work Order' },
+  { value: 'vehicle', label: 'Vehicle' },
+  { value: 'customer', label: 'Customer' },
+  { value: 'line_item', label: 'Line Item' },
+] as const
+
+export const ACTIVITY_EVENTS = [
+  'work_order_created',
+  'work_order_status_changed',
+  'line_item_added',
+  'line_item_updated',
+  'payment_added',
+  'payment_updated',
+  'attachment_added',
+  'photo_added',
+  'customer_created',
+  'vehicle_added',
+  'deposit_received',
+  'work_order_released',
+] as const
+
 export const ESTIMATE_NO_PATTERN = 'YY-MMDD-XXXXX'
 
 export const SITE_NAME = 'TalyerLedger'

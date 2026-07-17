@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { Car, Wrench, Users, FileText, UserPlus, DollarSign } from 'lucide-react'
 import { useCustomers } from '@/features/customers/hooks/use-customers'
 import { useVehicles } from '@/features/vehicles/hooks/use-vehicles'
-import { useJobs } from '@/features/jobs/hooks/use-jobs'
-import { JobStatusBadge } from '@/features/jobs/components/job-status-badge'
+import { useWorkOrders } from '@/features/work-orders/hooks/use-work-orders'
+import { WorkOrderStatusBadge } from '@/features/work-orders/components/work-order-status-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -15,7 +15,7 @@ import { formatDate, formatCurrency, calculateJobTotal } from '@/lib/utils'
 export default function DashboardPage() {
   const { customers, isLoading: loadingCustomers } = useCustomers()
   const { data: vehicles, isLoading: loadingVehicles } = useVehicles()
-  const { data: jobs, isLoading: loadingJobs } = useJobs()
+  const { data: workOrders, isLoading: loadingJobs } = useWorkOrders()
 
   const isLoading = loadingCustomers || loadingVehicles || loadingJobs
 
@@ -24,22 +24,22 @@ export default function DashboardPage() {
   }
 
   const totalVehicles = vehicles?.length ?? 0
-  const activeJobs = jobs?.filter((j) => !['paid', 'closed', 'voided'].includes(j.status)).length ?? 0
+  const activeWorkOrders = workOrders?.filter((wo) => !['paid', 'closed', 'voided'].includes(wo.status)).length ?? 0
   const totalCustomers = customers.length
 
-  const outstandingJobs = jobs?.filter(
-    (j) => !['paid', 'closed', 'draft', 'voided'].includes(j.status)
+  const outstandingWorkOrders = workOrders?.filter(
+    (wo) => !['paid', 'closed', 'draft', 'voided'].includes(wo.status)
   ) ?? []
 
-  const revenueJobs = jobs?.filter(
-    (j) => ['paid', 'invoiced'].includes(j.status)
+  const revenueWorkOrders = workOrders?.filter(
+    (wo) => ['paid', 'invoiced'].includes(wo.status)
   ) ?? []
-  const totalRevenue = revenueJobs.reduce(
-    (sum, j) => sum + (j.line_items ? calculateJobTotal(j.line_items) : 0), 0
+  const totalRevenue = revenueWorkOrders.reduce(
+    (sum, wo) => sum + (wo.line_items ? calculateJobTotal(wo.line_items) : 0), 0
   )
 
   const recentVehicles = vehicles?.slice(0, 5) ?? []
-  const recentJobs = jobs?.filter((j) => j.status !== 'voided').slice(0, 5) ?? []
+  const recentWorkOrders = workOrders?.filter((wo) => wo.status !== 'voided').slice(0, 5) ?? []
 
   return (
     <div className="space-y-6">
@@ -64,7 +64,7 @@ export default function DashboardPage() {
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeJobs}</div>
+            <div className="text-2xl font-bold">{activeWorkOrders}</div>
           </CardContent>
         </Card>
         <Card>
@@ -83,7 +83,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground">Invoiced & Paid jobs</p>
+            <p className="text-xs text-muted-foreground">Invoiced & Paid work orders</p>
           </CardContent>
         </Card>
       </div>
@@ -91,11 +91,11 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Jobs</CardTitle>
+            <CardTitle>Recent Work Orders</CardTitle>
           </CardHeader>
           <CardContent>
-            {recentJobs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No jobs yet.</p>
+            {recentWorkOrders.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No work orders yet.</p>
             ) : (
               <Table>
                 <TableHeader>
@@ -107,21 +107,21 @@ export default function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recentJobs.map((job) => (
-                    <TableRow key={job.id}>
+                  {recentWorkOrders.map((wo) => (
+                    <TableRow key={wo.id}>
                       <TableCell>
-                        <Link href={`/jobs/${job.id}`} className="hover:underline font-medium">
-                          {job.estimate_no}
+                        <Link href={`/jobs/${wo.id}`} className="hover:underline font-medium">
+                          {wo.estimate_no}
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <JobStatusBadge status={job.status} />
+                        <WorkOrderStatusBadge status={wo.status} />
                       </TableCell>
-                      <TableCell>{formatDate(job.date)}</TableCell>
+                      <TableCell>{formatDate(wo.date)}</TableCell>
                       <TableCell className="text-right font-mono">
                         {formatCurrency(
-                          job.line_items ? calculateJobTotal(job.line_items) : 0,
-                          job.currency
+                          wo.line_items ? calculateJobTotal(wo.line_items) : 0,
+                          wo.currency
                         )}
                       </TableCell>
                     </TableRow>
@@ -162,28 +162,28 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Outstanding Jobs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {outstandingJobs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No outstanding jobs.</p>
-              ) : (
-                <div className="space-y-3">
-                  {outstandingJobs.slice(0, 5).map((job) => (
-                    <Link
-                      key={job.id}
-                      href={`/jobs/${job.id}`}
-                      className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent transition-colors"
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{job.estimate_no}</p>
-                        <p className="text-xs text-muted-foreground">{formatDate(job.date)}</p>
-                      </div>
-                      <JobStatusBadge status={job.status} />
-                    </Link>
-                  ))}
-                </div>
-              )}
+            <CardTitle>Outstanding Work Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {outstandingWorkOrders.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No outstanding work orders.</p>
+            ) : (
+              <div className="space-y-3">
+                {outstandingWorkOrders.slice(0, 5).map((wo) => (
+                  <Link
+                    key={wo.id}
+                    href={`/jobs/${wo.id}`}
+                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-accent transition-colors"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{wo.estimate_no}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(wo.date)}</p>
+                    </div>
+                    <WorkOrderStatusBadge status={wo.status} />
+                  </Link>
+                ))}
+              </div>
+            )}
             </CardContent>
           </Card>
         </div>

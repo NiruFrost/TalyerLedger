@@ -2,12 +2,12 @@ import { createClient } from '@/lib/supabase/client'
 import { calculateLineTotal } from '@/lib/utils'
 import type { LineItem, LineItemInsert, LineItemUpdate } from '@/lib/types'
 
-export async function getLineItemsByJob(jobId: string): Promise<LineItem[]> {
+export async function getLineItemsByWorkOrder(workOrderId: string): Promise<LineItem[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('line_items')
     .select('*')
-    .eq('job_id', jobId)
+    .eq('work_order_id', workOrderId)
     .is('deleted_at', null)
     .order('sort_order')
   if (error) throw error
@@ -66,7 +66,7 @@ export async function reorderLineItems(
 }
 
 export async function syncLineItems(
-  jobId: string,
+  workOrderId: string,
   items: Array<{
     id?: string
     category: string
@@ -88,7 +88,7 @@ export async function syncLineItems(
   const { data: existing } = await supabase
     .from('line_items')
     .select('id')
-    .eq('job_id', jobId)
+    .eq('work_order_id', workOrderId)
     .is('deleted_at', null)
 
   const existingIds = new Set(existing?.map((i) => i.id) || [])
@@ -106,7 +106,7 @@ export async function syncLineItems(
   for (const item of items) {
     const lineTotal = calculateLineTotal(item.quantity, item.unit_price)
     const lineData = {
-      job_id: jobId,
+      work_order_id: workOrderId,
       category: item.category,
       item: item.item,
       specification: item.specification || null,

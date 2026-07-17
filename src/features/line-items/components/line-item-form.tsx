@@ -20,13 +20,13 @@ import {
 import type { LineItem, LineItemCategory } from '@/lib/types'
 
 interface LineItemFormProps {
-  jobId: string
+  workOrderId: string
   defaultValues?: LineItem
   onSuccess?: () => void
   onCancel?: () => void
 }
 
-export function LineItemForm({ jobId, defaultValues, onSuccess, onCancel }: LineItemFormProps) {
+export function LineItemForm({ workOrderId, defaultValues, onSuccess, onCancel }: LineItemFormProps) {
   const createLineItem = useCreateLineItem()
   const updateLineItem = useUpdateLineItem()
   const isEditing = !!defaultValues
@@ -71,7 +71,7 @@ export function LineItemForm({ jobId, defaultValues, onSuccess, onCancel }: Line
 
   async function onSubmit(data: LineItemFormValues) {
     const payload = {
-      job_id: jobId,
+      work_order_id: workOrderId,
       category: data.category as LineItemCategory,
       item: data.item,
       specification: data.specification || null,

@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/client'
 import type { Payment, PaymentInsert, PaymentUpdate } from '@/lib/types'
 
-export async function getPayments(jobId: string): Promise<Payment[]> {
+export async function getPayments(workOrderId: string): Promise<Payment[]> {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('payments')
     .select('*')
-    .eq('job_id', jobId)
+    .eq('work_order_id', workOrderId)
     .is('deleted_at', null)
     .order('date', { ascending: false })
   if (error) throw error

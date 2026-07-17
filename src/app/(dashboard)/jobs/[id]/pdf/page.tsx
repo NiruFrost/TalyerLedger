@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { ArrowLeft } from 'lucide-react'
-import { useJob } from '@/features/jobs/hooks/use-jobs'
+import { useWorkOrder } from '@/features/work-orders/hooks/use-work-orders'
 import { useShopSettings } from '@/features/settings/hooks/use-settings'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ export default function JobPdfPage() {
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
-  const { data: job, isLoading, error } = useJob(id)
+  const { data: workOrder, isLoading, error } = useWorkOrder(id)
   const { data: shopSettings } = useShopSettings()
 
   if (isLoading) {
@@ -32,12 +32,12 @@ export default function JobPdfPage() {
     )
   }
 
-  if (error || !job) {
+  if (error || !workOrder) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500">Failed to load job.</p>
+        <p className="text-red-500">Failed to load work order.</p>
         <Button variant="outline" className="mt-4" onClick={() => router.push('/jobs')}>
-          Back to Jobs
+          Back to Work Orders
         </Button>
       </div>
     )
@@ -52,11 +52,11 @@ export default function JobPdfPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">PDF Preview</h1>
-            <p className="text-muted-foreground">{job.estimate_no}</p>
+            <p className="text-muted-foreground">{workOrder.estimate_no}</p>
           </div>
         </div>
       </div>
-      <PdfPreview job={job} shopSettings={shopSettings} />
+      <PdfPreview job={workOrder} shopSettings={shopSettings} />
     </div>
   )
 }

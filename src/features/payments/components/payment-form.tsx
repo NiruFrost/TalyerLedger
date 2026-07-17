@@ -12,13 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Payment, PaymentType } from '@/lib/types'
 
 interface PaymentFormProps {
-  jobId: string
+  workOrderId: string
   defaultValues?: Payment
   onSuccess?: () => void
   onCancel?: () => void
 }
 
-export function PaymentForm({ jobId, defaultValues, onSuccess, onCancel }: PaymentFormProps) {
+export function PaymentForm({ workOrderId, defaultValues, onSuccess, onCancel }: PaymentFormProps) {
   const createPayment = useCreatePayment()
   const updatePayment = useUpdatePayment()
   const isEditing = !!defaultValues
@@ -50,10 +50,10 @@ export function PaymentForm({ jobId, defaultValues, onSuccess, onCancel }: Payme
     if (isEditing && defaultValues) {
       await updatePayment.mutateAsync({
         id: defaultValues.id,
-        data: { ...data, payment_type: data.payment_type as PaymentType, job_id: jobId },
+        data: { ...data, payment_type: data.payment_type as PaymentType, work_order_id: workOrderId },
       })
     } else {
-      await createPayment.mutateAsync({ ...data, payment_type: data.payment_type as PaymentType, job_id: jobId })
+      await createPayment.mutateAsync({ ...data, payment_type: data.payment_type as PaymentType, work_order_id: workOrderId })
     }
     onSuccess?.()
   }
