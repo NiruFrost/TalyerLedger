@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { UnitCombobox } from '@/components/ui/unit-combobox'
 import { Separator } from '@/components/ui/separator'
-import type { Job, JobStatus, CurrencyCode, LineItemCategory, DiscountType } from '@/lib/types'
+import type { Job, JobStatus, CurrencyCode, LineItemCategory, DiscountType, PayerType } from '@/lib/types'
 
 interface JobFormProps {
   defaultValues?: Partial<Job>
@@ -84,6 +84,11 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
           vehicle_id: defaultValues.vehicle_id || '',
           customer_id: defaultValues.customer_id || '',
           status: defaultValues.status || 'draft',
+          payer_type: defaultValues.payer_type || '',
+          insurance_company: defaultValues.insurance_company || '',
+          insurance_policy_no: defaultValues.insurance_policy_no || '',
+          insurance_claim_no: defaultValues.insurance_claim_no || '',
+          linked_job_id: defaultValues.linked_job_id || '',
           date: (defaultValues.date || new Date().toISOString()).split('T')[0],
           prepared_by: defaultValues.prepared_by || '',
           odometer: defaultValues.odometer ?? undefined,
@@ -111,6 +116,11 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
           vehicle_id: '',
           customer_id: '',
           status: 'draft',
+          payer_type: '',
+          insurance_company: '',
+          insurance_policy_no: '',
+          insurance_claim_no: '',
+          linked_job_id: '',
           date: new Date().toISOString().split('T')[0],
           prepared_by: '',
           odometer: undefined,
@@ -218,6 +228,11 @@ export function JobForm({ defaultValues, onSuccess, onCancel }: JobFormProps) {
       vehicle_id: data.vehicle_id,
       customer_id: data.customer_id || null,
       status: data.status as JobStatus,
+      payer_type: (data.payer_type || null) as PayerType | null,
+      insurance_company: data.insurance_company || null,
+      insurance_policy_no: data.insurance_policy_no || null,
+      insurance_claim_no: data.insurance_claim_no || null,
+      linked_job_id: data.linked_job_id || null,
       date: data.date,
       prepared_by: data.prepared_by || null,
       odometer: data.odometer ?? null,

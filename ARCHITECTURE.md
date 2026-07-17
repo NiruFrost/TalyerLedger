@@ -1,8 +1,8 @@
 # TalyerLedger — Architecture & Implementation Guide
 
-> **Version:** 1.0.0  
+> **Version:** 2.0.0  
 > **Stack:** Next.js 16 + React 19 + Supabase + TypeScript  
-> **Status:** Phase 1 Complete — Ready for Phase 2
+> **Status:** v2 Phase 0 & Phase 1 Complete — Ready for Phase 2+
 
 ---
 
@@ -144,7 +144,7 @@ src/
 ├── components/
 │   ├── forms/                    # Reusable form wrappers (Form, FormField, etc.)
 │   ├── layout/                   # DashboardShell, Header, Sidebar
-│   ├── pdf/                      # Invoice PDF generation (react-pdf)
+│   ├── pdf/                      # Job PDF generation (react-pdf) — Service Estimate / Statement of Account / Payment Acknowledgment
 │   └── ui/                       # 19 shadcn/ui components
 ├── db/migrations/                # 3 SQL migration files
 ├── features/
@@ -153,7 +153,7 @@ src/
 │   ├── vehicles/                 # Vehicle CRUD + restore
 │   ├── jobs/                     # Job CRUD + copy + restore
 │   ├── line-items/               # Line items CRUD + sync
-│   ├── payments/                 # Placeholder (Phase 3)
+│   ├── payments/                 # Payment CRUD (actions, hooks, form, list)
 │   ├── photos/                   # Placeholder (Phase 2)
 │   ├── search/                   # Global search command palette
 │   └── settings/                 # Shop settings CRUD
@@ -199,11 +199,11 @@ shop_settings (single row)
 |---|---|---|
 | `customers` | `id (UUID PK)`, `name`, `email`, `phone`, `address`, `notes`, `deleted_at` | FK to `vehicles`, `jobs` |
 | `vehicles` | `id (UUID PK)`, `customer_id`, `make`, `model`, `year`, `engine`, `transmission`, `vin`, `plate`, `color`, `cover_photo`, `deleted_at` | FK → `customers` |
-| `jobs` | `id (UUID PK)`, `estimate_no (UNIQUE)`, `vehicle_id`, `customer_id`, `status`, `date`, `currency`, `deleted_at` | FK → `vehicles`, `customers` |
+| `jobs` | `id (UUID PK)`, `estimate_no (UNIQUE)`, `vehicle_id`, `customer_id`, `status`, `payer_type`, `insurance_company`, `insurance_policy_no`, `insurance_claim_no`, `linked_job_id`, `date`, `currency`, `deleted_at` | FK → `vehicles`, `customers`, `jobs` (self-ref via linked_job_id) |
 | `line_items` | `id (UUID PK)`, `job_id`, `category`, `item`, `quantity`, `unit_price`, `line_total`, `is_inventory`, `deleted_at` | FK → `jobs` (CASCADE) |
-| `payments` | `id (UUID PK)`, `job_id`, `date`, `amount`, `payment_method`, `deleted_at` | FK → `jobs` (RESTRICT) |
+| `payments` | `id (UUID PK)`, `job_id`, `date`, `amount`, `payment_method`, `payment_type`, `reference_number`, `deleted_at` | FK → `jobs` (RESTRICT) |
 | `photos` | `id (UUID PK)`, `url`, `vehicle_id`, `job_id`, `line_item_id`, `photo_type`, `deleted_at` | FK → `vehicles`, `jobs`, `line_items` (CASCADE) |
-| `shop_settings` | `id (UUID PK)`, `shop_name`, `address`, `contact`, `email`, `tax_id` | Single-row config |
+| `shop_settings` | `id (UUID PK)`, `shop_name`, `address`, `contact`, `email`, `tin`, `dti_bn`, `business_permit`, `tax_id` | Single-row config |
 
 ### Common Columns
 
@@ -226,6 +226,7 @@ All 7 tables have `ENABLE ROW LEVEL SECURITY` with:
 
 ```
 draft → estimate → approved → invoiced → partially_paid → paid → closed
+voided (can be set from any status to mark job as cancelled/void)
 ```
 
 ### Estimate Number Format
@@ -374,8 +375,22 @@ Component → Form (react-hook-form + zodResolver)
 | Skeleton loading | ✅ | All tables, detail pages, forms |
 | Empty states | ✅ | All list and detail pages |
 | Accessible forms | ✅ | Labels, error messages, aria attributes |
-| Build — 0 lint errors | ✅ | 4 non-blocking warnings (React Compiler) |
+| Build — 0 lint errors | ✅ | 5 non-blocking warnings (React Compiler) |
 | Build — 0 TypeScript errors | ✅ | `tsc --noEmit` passes |
+
+### v2 Enhancements
+
+| Requirement | Status | Notes |
+|---|---|---|
+| Voided job status | ✅ | Added to enum, JOB_STATUSES, job list tabs, filtered from dashboard |
+| Payer type (customer/insurance/both) | ✅ | `payer_type` on jobs table + form + detail display |
+| Insurance fields | ✅ | `insurance_company`, `insurance_policy_no`, `insurance_claim_no` on jobs |
+| Linked job (self-referencing FK) | ✅ | `linked_job_id` on jobs, shown in detail with link |
+| Payment type (deposit/regular) | ✅ | `payment_type` on payments table + form |
+| Payments module (full CRUD) | ✅ | actions, schemas, hooks, form, list — replaces placeholder |
+| PDF labeling | ✅ | "Service Estimate" for draft/estimate, "Payment Acknowledgment" for paid, "Statement of Account" for others |
+| Business Registration fields | ✅ | TIN, DTI/BN, Business Permit in shop_settings + settings UI + PDF |
+| Migration 00004 | ✅ | All schema changes reversible |
 
 ---
 
@@ -386,12 +401,13 @@ Component → Form (react-hook-form + zodResolver)
 | `00001_initial_schema.sql` | Core schema: 4 enums, 7 tables, RLS, triggers, indexes | Applied |
 | `00002_line_items_enhancements.sql` | Discount columns: discount_type, discount_value | Applied |
 | `00003_photos_audit_storage.sql` | Photos updated_at/updated_by, shop_settings created_by, storage RLS | **Needs to be applied** |
+| `00004_v2_enhancements.sql` | Voided status (enum), payer_type, insurance_*, linked_job_id on jobs; payment_type on payments; TIN/DTI/permit on shop_settings | **Needs to be applied** |
 
-To apply migration 00003:
+To apply migrations:
 ```sql
--- Run in Supabase SQL Editor
-\i src/db/migrations/00003_photos_audit_storage.sql
--- Or paste contents into Supabase Dashboard → SQL Editor
+-- Run sequentially in Supabase SQL Editor
+-- 1. 00003 (if not yet applied)
+-- 2. 00004
 ```
 
 ---
@@ -423,10 +439,14 @@ npx tsc --noEmit   → 0 errors
 ## Future Feature Readiness
 
 | Feature | Current Support |
-|---|---|
+|---|---|---|
 | Inventory | ✅ `is_inventory` on line_items |
 | Photo uploads | ✅ Schema, storage bucket, RLS in migration 00003 |
-| Payments ledger | ✅ Schema exists, UI placeholder in Phase 3 |
+| Payments ledger | ✅ Full CRUD with payment_type (deposit/regular) |
+| Business Registration | ✅ TIN, DTI/BN, Business Permit on settings + PDF |
+| Voided Jobs | ✅ Voided status, excluded from dashboard, filtered in list |
+| Insurance/Warranty | ✅ payer_type, insurance_company, policy_no, claim_no |
+| Linked Jobs | ✅ Self-referencing FK on jobs, displayed in detail |
 | Multiple users | ⚠️ Single-tenant RLS; needs tenant_id |
 | Multiple workshops | ⚠️ Single shop_settings; needs workshop_id |
 | VIN scanning | ⚠️ VIN field exists |
