@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { generateEstimateNumber } from '@/lib/utils'
-import type { WorkOrder, WorkOrderInsert, WorkOrderUpdate, LineItem } from '@/lib/types'
+import { STATUS_TRANSITIONS } from '@/lib/constants'
+import type { WorkOrder, WorkOrderInsert, WorkOrderUpdate, LineItem, WorkOrderStatus } from '@/lib/types'
 
 const WORK_ORDER_SELECT = '*, vehicle:vehicles(*), customer:customers(*), line_items:line_items(*), payments:payments(*), linked_work_order:work_orders!linked_work_order_id(*)'
 
@@ -70,6 +71,20 @@ export async function createWorkOrder(data: WorkOrderInsert): Promise<WorkOrder>
 
 export async function updateWorkOrder(id: string, data: WorkOrderUpdate): Promise<WorkOrder> {
   const supabase = createClient()
+
+  if (data.status) {
+    const { data: current, error: fetchErr } = await supabase
+      .from('work_orders')
+      .select('status')
+      .eq('id', id)
+      .single()
+    if (fetchErr) throw fetchErr
+    const allowed = STATUS_TRANSITIONS[current.status as WorkOrderStatus] ?? []
+    if (data.status !== current.status && !allowed.includes(data.status as WorkOrderStatus)) {
+      throw new Error(`Cannot transition from '${current.status}' to '${data.status}'. Allowed: ${allowed.join(', ') || 'none (terminal)'}`)
+    }
+  }
+
   const { data: updated, error } = await supabase
     .from('work_orders')
     .update(data)
