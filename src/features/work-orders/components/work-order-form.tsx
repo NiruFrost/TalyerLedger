@@ -348,9 +348,10 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                 <SelectContent>
                   {JOB_STATUSES
                     .filter((s) => {
-                      if (!defaultValues?.status) return true
-                      const allowed = STATUS_TRANSITIONS[defaultValues.status] ?? []
-                      return allowed.includes(s.value)
+                      const currentStatus = form.watch('status')
+                      if (!currentStatus) return true
+                      const allowed = STATUS_TRANSITIONS[currentStatus as WorkOrderStatus] ?? []
+                      return s.value === currentStatus || allowed.includes(s.value as WorkOrderStatus)
                     })
                     .map((status) => (
                       <SelectItem key={status.value} value={status.value}>

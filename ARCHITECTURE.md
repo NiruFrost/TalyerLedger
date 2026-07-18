@@ -1,6 +1,6 @@
 # TalyerLedger — Architecture & Implementation Guide
 
-> **Version:** 2.2.0  
+> **Version:** 2.2.1  
 > **Stack:** Next.js 16 + React 19 + Supabase + TypeScript  
 > **Status:** v2 Features Complete — Labor Catalog / Service Packages / Vehicle Timeline / Notifications / Settings Management
 
@@ -429,6 +429,8 @@ Component → Form (react-hook-form + zodResolver)
 | Status enum replacement | Old `job_status` (draft/estimate/approved/invoiced/partially_paid/paid/closed/voided) → new `work_order_status` (draft/estimate/approved/in_progress/completed/released/closed/voided) |
 | Status mapping | `invoiced`/`partially_paid` → `completed`, `paid` → `released`, others preserved |
 | `STATUS_TRANSITIONS` | Defines allowed transitions: draft→estimate→approved→in_progress→completed→released→closed; voided is terminal |
+| Server-side enforcement | `updateWorkOrder()` in `actions.ts` fetches current status and validates against `STATUS_TRANSITIONS` before applying; throws descriptive error if disallowed |
+| UI enforcement | Form `<Select>` filters options dynamically using `form.watch('status')` to always reflect the current live state |
 | `PAYMENT_STATUSES` | Updated to: unpaid, partial, paid, refund (replaces overpaid) |
 | Auto-derivation | `recalculatePaymentStatus()` in payment actions updates `work_orders.payment_status` after create/update/delete |
 
