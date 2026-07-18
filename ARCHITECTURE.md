@@ -412,10 +412,10 @@ Component → Form (react-hook-form + zodResolver)
 | Internal Notes | ✅ | `internal_notes` column on work_orders, form field, detail view, excluded from PDF |
 | Status Workflow | ✅ | New statuses (draft→estimate→approved→in_progress→completed→released→closed+voided), transition map (`STATUS_TRANSITIONS`), status select respects transitions in form + detail |
 | Payment Status | ✅ | `payment_status` column (unpaid/partial/paid/refund) auto-derived from payments via `recalculatePaymentStatus()`, also settable in form |
-| Vehicle Timeline | Pending | Replace simple "Service History" list with a visual timeline on the vehicle detail page |
-| Notifications DB Schema | Pending | Design tables for notification events — delivery is future |
-| Labor Catalog | Pending | Reusable catalog of predefined labor line items |
-| Service Packages | Pending | Predefined bundles of line items |
+| Vehicle Timeline | ✅ | Visual vertical timeline grouped by year on vehicle detail page, shows estimate_no + line item summary + status badge, replaces old table |
+| Notifications DB Schema | ✅ | `notifications` table with event_type, title, message, metadata (jsonb), is_read, RLS — delivery is future |
+| Labor Catalog | ✅ | `labor_items` table; reusable catalog with CRUD UI in Settings → Labor Catalog tab; "From Catalog" picker in work order form inserts one click |
+| Service Packages | ✅ | `service_packages` + `package_items` tables; CRUD UI in Settings → Service Packages tab; "From Package" picker inserts multiple line items |
 
 ### Migration 00006 — Status Workflow + Internal Notes
 
@@ -440,7 +440,8 @@ Component → Form (react-hook-form + zodResolver)
 | `00003_photos_audit_storage.sql` | Photos updated_at/updated_by, shop_settings created_by, storage RLS | Applied |
 | `00004_v2_enhancements.sql` | Voided status (enum), payer_type, insurance_*, linked_job_id on jobs; payment_type on payments; TIN/DTI/permit on shop_settings | Applied |
 | `00005_work_order_document_attachment.sql` | Rename jobs→work_orders, FK column renames (job_id→work_order_id, linked_job_id→linked_work_order_id), indexes/triggers renamed; new tables: documents, activity_logs, attachments (polymorphic, replaces photos) | Applied |
-| `00006_status_workflow_internal_notes.sql` | Add internal_notes + payment_status to work_orders; replace status enum with new workflow (in_progress, completed, released); STATUS_TRANSITIONS; auto-derive payment_status | **Needs to be applied** |
+| `00006_status_workflow_internal_notes.sql` | Add internal_notes + payment_status to work_orders; replace status enum with new workflow (in_progress, completed, released); STATUS_TRANSITIONS; auto-derive payment_status | Applied |
+| `00007_notifications_labor_packages.sql` | Create notifications, labor_items, service_packages, package_items tables with RLS | **Needs to be applied** |
 
 ### Migration Order
 
@@ -450,6 +451,7 @@ Component → Form (react-hook-form + zodResolver)
 -- 2. 00004 (MUST be applied before 00005)
 -- 3. 00005
 -- 4. 00006
+-- 5. 00007
 ```
 
 ---
