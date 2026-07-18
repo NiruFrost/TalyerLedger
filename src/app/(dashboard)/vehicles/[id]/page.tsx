@@ -3,10 +3,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Pencil, Plus, Wrench } from 'lucide-react'
+import { ArrowLeft, Pencil, Plus, Wrench, Clock } from 'lucide-react'
 import { useVehicle } from '@/features/vehicles/hooks/use-vehicles'
 import { useWorkOrdersByVehicle } from '@/features/work-orders/hooks/use-work-orders'
 import { WorkOrderStatusBadge } from '@/features/work-orders/components/work-order-status-badge'
+import { VehicleTimeline } from '@/features/vehicles/components/vehicle-timeline'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -214,6 +215,17 @@ export default function VehicleDetailPage() {
               </TableBody>
             </Table>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-4 w-4" /> Vehicle Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <VehicleTimeline vehicleId={id} />
         </CardContent>
       </Card>
     </div>

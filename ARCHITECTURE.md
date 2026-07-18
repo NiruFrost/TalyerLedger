@@ -1,8 +1,8 @@
 # TalyerLedger — Architecture & Implementation Guide
 
-> **Version:** 2.1.0  
+> **Version:** 2.2.0  
 > **Stack:** Next.js 16 + React 19 + Supabase + TypeScript  
-> **Status:** v2 Structural Redesign — Work Order / Document / Activity Timeline / Attachments
+> **Status:** v2 Features Complete — Labor Catalog / Service Packages / Vehicle Timeline / Notifications / Settings Management
 
 ---
 
@@ -146,16 +146,18 @@ src/
 │   ├── layout/                   # DashboardShell, Header, Sidebar
 │   ├── pdf/                      # Work Order PDF generation (react-pdf) — Service Estimate / Statement of Account / Payment Acknowledgment
 │   └── ui/                       # 19 shadcn/ui components
-├── db/migrations/                # 5 SQL migration files
+├── db/migrations/                # 7 SQL migration files
 ├── features/
 │   ├── auth/                     # Login, register, logout
 │   ├── customers/                # Customer CRUD + restore
-│   ├── vehicles/                 # Vehicle CRUD + restore
+│   ├── vehicles/                 # Vehicle CRUD + restore + timeline component
 │   ├── work-orders/              # Work Order CRUD + copy + restore (renamed from jobs)
 │   ├── line-items/               # Line items CRUD + sync (FK: work_order_id)
 │   ├── payments/                 # Payment CRUD (actions, hooks, form, list) (FK: work_order_id)
+│   ├── labor-catalog/            # Labor items CRUD + picker for work order form
+│   ├── service-packages/         # Service packages CRUD + picker for work order form
 │   ├── search/                   # Global search command palette
-│   └── settings/                 # Shop settings CRUD
+│   └── settings/                 # Shop settings CRUD + settings-tabs (catalog, packages, notifications)
 ├── hooks/
 │   ├── use-media-query.ts        # Responsive breakpoint hook
 │   └── use-toast.ts              # Toast notification hook
@@ -266,14 +268,15 @@ Example: `26-0717-000042` (42nd work order in 2026)
 
 ## 6. Component Library
 
-### UI Components (19 total — shadcn/ui)
+### UI Components (21 total — shadcn/ui)
 
 ```
 alert-dialog    avatar      badge       button
 card            checkbox    command     dialog
 dropdown-menu   input       label       popover
-select          separator   skeleton    table
-tabs            textarea    toast
+scroll-area     select      separator   skeleton
+switch          table       tabs        textarea
+toast
 ```
 
 ### Form Components (custom)
@@ -441,17 +444,19 @@ Component → Form (react-hook-form + zodResolver)
 | `00004_v2_enhancements.sql` | Voided status (enum), payer_type, insurance_*, linked_job_id on jobs; payment_type on payments; TIN/DTI/permit on shop_settings | Applied |
 | `00005_work_order_document_attachment.sql` | Rename jobs→work_orders, FK column renames (job_id→work_order_id, linked_job_id→linked_work_order_id), indexes/triggers renamed; new tables: documents, activity_logs, attachments (polymorphic, replaces photos) | Applied |
 | `00006_status_workflow_internal_notes.sql` | Add internal_notes + payment_status to work_orders; replace status enum with new workflow (in_progress, completed, released); STATUS_TRANSITIONS; auto-derive payment_status | Applied |
-| `00007_notifications_labor_packages.sql` | Create notifications, labor_items, service_packages, package_items tables with RLS | **Needs to be applied** |
+| `00007_notifications_labor_packages.sql` | Create notifications, labor_items, service_packages, package_items tables with RLS | Applied |
 
 ### Migration Order
 
 ```sql
 -- Run sequentially in Supabase SQL Editor
--- 1. 00003
--- 2. 00004 (MUST be applied before 00005)
--- 3. 00005
--- 4. 00006
--- 5. 00007
+-- 1. 00001 (initial schema)
+-- 2. 00002 (line_items enhancements)
+-- 3. 00003 (photos, audit, storage)
+-- 4. 00004 (v2 enhancements — MUST be applied before 00005)
+-- 5. 00005 (work_order, document, attachment)
+-- 6. 00006 (status workflow + internal notes)
+-- 7. 00007 (notifications, labor catalog, service packages)
 ```
 
 ---
@@ -494,6 +499,12 @@ npx tsc --noEmit   → 0 errors
 | Insurance/Warranty | ✅ payer_type, insurance_company, policy_no, claim_no |
 | Linked Work Orders | ✅ Self-referencing FK on work_orders, displayed in detail |
 | Document Labels | ✅ `getDocumentLabel()` resolves to "Service Estimate", "Statement of Account", "Payment Acknowledgment" by status |
+| Vehicle Timeline | ✅ Visual timeline on vehicle detail page, grouped by date |
+| Labor Catalog | ✅ CRUD in Settings, picker in work order form |
+| Service Packages | ✅ CRUD in Settings, multi-line picker in work order form |
+| Notifications Schema | ✅ `notifications` table with RLS, events in Settings UI |
+| Status Workflow | ✅ D→E→A→IP→C→R→Cl + voided, STATUS_TRANSITIONS enforced |
+| Internal Notes | ✅ `internal_notes` field, excluded from PDF |
 | Multiple users | ⚠️ Single-tenant RLS; needs tenant_id |
 | Multiple workshops | ⚠️ Single shop_settings; needs workshop_id |
 | VIN scanning | ⚠️ VIN field exists |

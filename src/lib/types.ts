@@ -20,6 +20,8 @@ export type AttachmentType = 'image' | 'pdf' | 'docx' | 'xlsx' | 'video' | 'othe
 
 export type AttachmentParentType = 'work_order' | 'vehicle' | 'customer' | 'line_item'
 
+export type NotificationEvent = 'pickup_ready' | 'warranty_expiring' | 'payment_overdue' | 'tool_overdue' | 'scheduled_maintenance' | 'insurance_approved'
+
 export interface Customer {
   id: string
   name: string
@@ -284,6 +286,94 @@ export interface DashboardStats {
   monthly_revenue: number
   work_orders_by_status: { status: WorkOrderStatus; count: number }[]
   recent_work_orders: WorkOrder[]
+}
+
+export interface Notification {
+  id: string
+  work_order_id: string | null
+  event_type: string
+  title: string
+  message: string | null
+  metadata: Record<string, unknown> | null
+  is_read: boolean
+  created_at: string
+  created_by: string | null
+  deleted_at: string | null
+}
+
+export interface LaborItem {
+  id: string
+  name: string
+  description: string | null
+  category: LineItemCategory
+  unit_price: number
+  unit: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+  deleted_at: string | null
+}
+
+export interface LaborItemInsert {
+  name: string
+  description?: string | null
+  category?: LineItemCategory
+  unit_price?: number
+  unit?: string
+  sort_order?: number
+}
+
+export type LaborItemUpdate = Partial<LaborItemInsert>
+
+export interface ServicePackage {
+  id: string
+  name: string
+  description: string | null
+  category: string
+  total_price: number | null
+  sort_order: number
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+  deleted_at: string | null
+  items?: PackageItem[]
+}
+
+export interface ServicePackageInsert {
+  name: string
+  description?: string | null
+  category?: string
+  total_price?: number | null
+  sort_order?: number
+  items?: PackageItemInsert[]
+}
+
+export type ServicePackageUpdate = Partial<ServicePackageInsert>
+
+export interface PackageItem {
+  id: string
+  package_id: string
+  item_type: LineItemCategory
+  name: string
+  description: string | null
+  quantity: number
+  unit: string
+  unit_price: number
+  sort_order: number
+  created_at: string
+}
+
+export interface PackageItemInsert {
+  item_type: LineItemCategory
+  name: string
+  description?: string | null
+  quantity?: number
+  unit?: string
+  unit_price?: number
+  sort_order?: number
 }
 
 // Backward-compatible type aliases

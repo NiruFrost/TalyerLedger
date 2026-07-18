@@ -36,7 +36,9 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { UnitCombobox } from '@/components/ui/unit-combobox'
 import { Separator } from '@/components/ui/separator'
-import type { WorkOrder, WorkOrderStatus, PaymentStatus, CurrencyCode, LineItemCategory, DiscountType, PayerType } from '@/lib/types'
+import type { WorkOrder, WorkOrderStatus, PaymentStatus, CurrencyCode, LineItemCategory, DiscountType, PayerType, LaborItem, ServicePackage } from '@/lib/types'
+import { LaborItemPicker } from '@/features/labor-catalog/components/labor-item-picker'
+import { PackagePicker } from '@/features/service-packages/components/package-picker'
 
 interface WorkOrderFormProps {
   defaultValues?: Partial<WorkOrder>
@@ -436,9 +438,43 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Line Items</CardTitle>
-          <Button type="button" size="sm" onClick={addLineItem}>
-            <Plus className="mr-1 h-4 w-4" /> Add Item
-          </Button>
+          <div className="flex gap-2">
+            <LaborItemPicker onSelect={(item: LaborItem) => {
+              append({
+                category: item.category,
+                item: item.name,
+                specification: item.description || '',
+                installation_status: '',
+                quantity: 1,
+                unit: item.unit,
+                unit_price: item.unit_price,
+                discount_type: '',
+                discount_value: 0,
+                notes: '',
+                sort_order: fields.length,
+              })
+            }} />
+            <PackagePicker onSelect={(pkg: ServicePackage) => {
+              for (const pkgItem of (pkg.items ?? [])) {
+                append({
+                  category: pkgItem.item_type,
+                  item: pkgItem.name,
+                  specification: pkgItem.description || '',
+                  installation_status: '',
+                  quantity: pkgItem.quantity,
+                  unit: pkgItem.unit,
+                  unit_price: pkgItem.unit_price,
+                  discount_type: '',
+                  discount_value: 0,
+                  notes: '',
+                  sort_order: fields.length,
+                })
+              }
+            }} />
+            <Button type="button" size="sm" onClick={addLineItem}>
+              <Plus className="mr-1 h-4 w-4" /> Add Item
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">

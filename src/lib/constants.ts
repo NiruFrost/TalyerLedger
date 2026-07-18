@@ -109,6 +109,15 @@ export const ACTIVITY_EVENTS = [
   'work_order_released',
 ] as const
 
+export const NOTIFICATION_EVENTS = [
+  { value: 'pickup_ready', label: 'Pickup Ready' },
+  { value: 'warranty_expiring', label: 'Warranty Expiring' },
+  { value: 'payment_overdue', label: 'Payment Overdue' },
+  { value: 'tool_overdue', label: 'Tool Overdue' },
+  { value: 'scheduled_maintenance', label: 'Scheduled Maintenance' },
+  { value: 'insurance_approved', label: 'Insurance Approved' },
+] as const
+
 export const ESTIMATE_NO_PATTERN = 'YY-MMDD-XXXXX'
 
 export const SITE_NAME = 'TalyerLedger'

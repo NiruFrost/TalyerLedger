@@ -6,12 +6,16 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Save } from 'lucide-react'
 import { useShopSettings, useUpdateShopSettings } from '@/features/settings/hooks/use-settings'
+import { SettingsTabs } from '@/features/settings/components/settings-tabs'
+import { NOTIFICATION_EVENTS } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const settingsSchema = z.object({
   shop_name: z.string().min(1, 'Shop name is required'),
@@ -94,69 +98,101 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">Manage your shop settings</p>
       </div>
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Shop Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="shop_name">Shop Name *</Label>
-              <Input id="shop_name" {...register('shop_name')} />
-              {errors.shop_name && (
-                <p className="text-sm text-red-500">{errors.shop_name.message}</p>
-              )}
-            </div>
+      <Tabs defaultValue="shop">
+        <TabsList className="mb-6">
+          <TabsTrigger value="shop">Shop Info</TabsTrigger>
+          <TabsTrigger value="catalog">Catalog & Packages</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+        </TabsList>
 
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Textarea id="address" {...register('address')} />
-            </div>
+        <TabsContent value="shop">
+          <Card className="max-w-2xl">
+            <CardHeader>
+              <CardTitle>Shop Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="shop_name">Shop Name *</Label>
+                  <Input id="shop_name" {...register('shop_name')} />
+                  {errors.shop_name && (
+                    <p className="text-sm text-red-500">{errors.shop_name.message}</p>
+                  )}
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="contact_number">Contact Number</Label>
-              <Input id="contact_number" {...register('contact_number')} />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Textarea id="address" {...register('address')} />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...register('email')} />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact_number">Contact Number</Label>
+                  <Input id="contact_number" {...register('contact_number')} />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="logo_url">Logo URL</Label>
-              <Input id="logo_url" {...register('logo_url')} />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" {...register('email')} />
+                </div>
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting}>
-                <Save className="mr-2 h-4 w-4" />
-                {isSubmitting ? 'Saving...' : 'Save Settings'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="logo_url">Logo URL</Label>
+                  <Input id="logo_url" {...register('logo_url')} />
+                </div>
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Business Registration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="tin">TIN (Tax Identification No.)</Label>
-            <Input id="tin" {...register('tin')} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="dti_bn">DTI / Business Registration No.</Label>
-            <Input id="dti_bn" {...register('dti_bn')} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="business_permit">Business Permit No.</Label>
-            <Input id="business_permit" {...register('business_permit')} />
-          </div>
-        </CardContent>
-      </Card>
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={isSubmitting}>
+                    <Save className="mr-2 h-4 w-4" />
+                    {isSubmitting ? 'Saving...' : 'Save Settings'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="max-w-2xl mt-6">
+            <CardHeader>
+              <CardTitle>Business Registration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="tin">TIN (Tax Identification No.)</Label>
+                <Input id="tin" {...register('tin')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dti_bn">DTI / Business Registration No.</Label>
+                <Input id="dti_bn" {...register('dti_bn')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="business_permit">Business Permit No.</Label>
+                <Input id="business_permit" {...register('business_permit')} />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="catalog">
+          <SettingsTabs />
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Events</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {NOTIFICATION_EVENTS.map((evt) => (
+                  <div key={evt.value} className="flex items-center justify-between">
+                    <Label htmlFor={`notif-${evt.value}`} className="cursor-pointer">{evt.label}</Label>
+                    <Switch id={`notif-${evt.value}`} defaultChecked />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
