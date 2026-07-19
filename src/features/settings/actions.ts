@@ -12,6 +12,7 @@ export interface ShopSettings {
   tin: string | null
   dti_bn: string | null
   business_permit: string | null
+  include_photo_appendix: boolean
 }
 
 export interface ShopSettingsUpdate {
@@ -25,6 +26,7 @@ export interface ShopSettingsUpdate {
   tin?: string | null
   dti_bn?: string | null
   business_permit?: string | null
+  include_photo_appendix?: boolean
 }
 
 export async function getShopSettings(): Promise<ShopSettings | null> {

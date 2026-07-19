@@ -30,8 +30,10 @@ export function VehicleTimeline({ vehicleId }: { vehicleId: string }) {
         .order('created_at', { ascending: false })
 
       if (woData) {
-        workOrders.push(...woData as any)
-        const ids = woData.map((wo: any) => wo.id)
+        for (const wo of woData) {
+          workOrders.push(wo as { id: string; order_no: string; status: string; created_at: string })
+        }
+        const ids = woData.map((wo: { id: string }) => wo.id)
         if (ids.length > 0) {
           const { data: liData } = await supabase
             .from('line_items')
@@ -40,10 +42,11 @@ export function VehicleTimeline({ vehicleId }: { vehicleId: string }) {
             .is('deleted_at', null)
             .order('sort_order')
           if (liData) {
-            for (const li of liData as any[]) {
-              if (!lineItemsByWo[li.work_order_id]) lineItemsByWo[li.work_order_id] = []
-              if (lineItemsByWo[li.work_order_id].length === 0) {
-                lineItemsByWo[li.work_order_id].push({ item: li.item })
+            for (const li of liData) {
+              const item = li as { work_order_id: string; item: string }
+              if (!lineItemsByWo[item.work_order_id]) lineItemsByWo[item.work_order_id] = []
+              if (lineItemsByWo[item.work_order_id].length === 0) {
+                lineItemsByWo[item.work_order_id].push({ item: item.item })
               }
             }
           }

@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
 
 interface JobPDFProps {
   job: {
@@ -44,6 +44,8 @@ interface JobPDFProps {
     dti_bn?: string | null
     business_permit?: string | null
   }
+  includePhotoAppendix?: boolean
+  attachmentUrls?: Array<{ url: string; caption?: string | null; category?: string }>
 }
 
 Font.register({
@@ -400,7 +402,55 @@ const styles = StyleSheet.create({
   },
 })
 
-const JobPDF = ({ job, shopSettings }: JobPDFProps) => {
+const PHOTOS_PER_PAGE = 6
+
+const photoPageStyles = StyleSheet.create({
+  photoPage: {
+    padding: 30,
+    fontFamily: 'Helvetica',
+    fontSize: 8,
+    color: COLORS.primary,
+  },
+  photoHeader: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: COLORS.primary,
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  photoItem: {
+    width: '30%',
+    marginBottom: 16,
+  },
+  photoImage: {
+    width: '100%',
+    height: 120,
+    objectFit: 'cover',
+    borderRadius: 4,
+  },
+  photoCaption: {
+    fontSize: 7,
+    color: COLORS.gray,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  photoCategoryLabel: {
+    fontSize: 6,
+    fontWeight: 700,
+    color: COLORS.accent,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+})
+
+const JobPDF = ({ job, shopSettings, includePhotoAppendix, attachmentUrls }: JobPDFProps) => {
   const shopName = shopSettings?.shop_name || 'TalyerLedger Auto Repair'
   const shopAddress = shopSettings?.address
   const shopContact = shopSettings?.contact_number
@@ -422,6 +472,13 @@ const JobPDF = ({ job, shopSettings }: JobPDFProps) => {
   const grandTotal = job.line_items
     ? job.line_items.reduce((sum, item) => sum + item.line_total, 0)
     : 0
+
+  const photoPages: { url: string; caption?: string | null; category?: string }[][] = []
+  if (includePhotoAppendix && attachmentUrls && attachmentUrls.length > 0) {
+    for (let i = 0; i < attachmentUrls.length; i += PHOTOS_PER_PAGE) {
+      photoPages.push(attachmentUrls.slice(i, i + PHOTOS_PER_PAGE))
+    }
+  }
 
   return (
     <Document>
@@ -576,6 +633,31 @@ const JobPDF = ({ job, shopSettings }: JobPDFProps) => {
           <Text style={styles.pageNumber}>{shopName}</Text>
         </View>
       </Page>
+
+      {photoPages.map((pagePhotos, pageIdx) => (
+        <Page key={pageIdx} size="A4" style={photoPageStyles.photoPage}>
+          <Text style={photoPageStyles.photoHeader}>
+            Photo Appendix — Page {pageIdx + 1}
+          </Text>
+          <View style={photoPageStyles.photoGrid}>
+            {pagePhotos.map((photo, photoIdx) => (
+              <View key={photoIdx} style={photoPageStyles.photoItem}>
+                <Image src={photo.url} style={photoPageStyles.photoImage} />
+                {photo.caption && (
+                  <Text style={photoPageStyles.photoCaption}>{photo.caption}</Text>
+                )}
+                {photo.category && (
+                  <Text style={photoPageStyles.photoCategoryLabel}>{photo.category}</Text>
+                )}
+              </View>
+            ))}
+          </View>
+          <View style={styles.pageFooter}>
+            <Text style={styles.pageNumber}>{shopName}</Text>
+            <Text style={styles.pageNumber}>Page</Text>
+          </View>
+        </Page>
+      ))}
     </Document>
   )
 }

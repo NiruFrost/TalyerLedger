@@ -78,21 +78,41 @@ export const DOCUMENT_TYPES = [
   { value: 'job_order', label: 'Job Order' },
 ] as const
 
-export const ATTACHMENT_TYPES = [
-  { value: 'image', label: 'Image' },
-  { value: 'pdf', label: 'PDF' },
-  { value: 'docx', label: 'Document' },
-  { value: 'xlsx', label: 'Spreadsheet' },
-  { value: 'video', label: 'Video' },
-  { value: 'other', label: 'Other' },
+export const ATTACHMENT_FILE_TYPES = [
+  { value: 'image', label: 'Image', accept: 'image/jpeg,image/png,image/webp' },
+  { value: 'pdf', label: 'PDF', accept: 'application/pdf' },
+  { value: 'docx', label: 'Document', accept: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+  { value: 'xlsx', label: 'Spreadsheet', accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  { value: 'video', label: 'Video', accept: 'video/*' },
+  { value: 'other', label: 'Other', accept: '' },
+] as const
+
+export const ATTACHMENT_CATEGORIES = [
+  { value: 'before', label: 'Before', color: 'bg-blue-100 text-blue-700' },
+  { value: 'during', label: 'During Repair', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 'after', label: 'After', color: 'bg-green-100 text-green-700' },
+  { value: 'damage', label: 'Damage', color: 'bg-red-100 text-red-700' },
+  { value: 'vehicle_overview', label: 'Vehicle Overview', color: 'bg-gray-100 text-gray-700' },
+  { value: 'odometer', label: 'Odometer', color: 'bg-purple-100 text-purple-700' },
+  { value: 'vin', label: 'VIN', color: 'bg-indigo-100 text-indigo-700' },
+  { value: 'plate_number', label: 'Plate Number', color: 'bg-pink-100 text-pink-700' },
+  { value: 'authorization_letter', label: 'Authorization Letter', color: 'bg-orange-100 text-orange-700' },
+  { value: 'tool_condition_out', label: 'Tool Condition (Out)', color: 'bg-teal-100 text-teal-700' },
+  { value: 'tool_condition_in', label: 'Tool Condition (In)', color: 'bg-cyan-100 text-cyan-700' },
+  { value: 'other', label: 'Other', color: 'bg-gray-100 text-gray-700' },
 ] as const
 
 export const ATTACHMENT_PARENT_TYPES = [
-  { value: 'work_order', label: 'Work Order' },
   { value: 'vehicle', label: 'Vehicle' },
-  { value: 'customer', label: 'Customer' },
+  { value: 'work_order', label: 'Work Order' },
   { value: 'line_item', label: 'Line Item' },
 ] as const
+
+export const ATTACHMENT_ACCEPTED_MIMES = ['image/jpeg', 'image/png', 'image/webp']
+export const ATTACHMENT_MAX_SIZE_MB = 10
+export const ATTACHMENT_MAX_SIZE_BYTES = ATTACHMENT_MAX_SIZE_MB * 1024 * 1024
+export const ATTACHMENT_THUMBNAIL_WIDTH = 400
+export const ATTACHMENT_FULL_WIDTH = 1920
 
 export const ACTIVITY_EVENTS = [
   'work_order_created',

@@ -8,6 +8,7 @@ import { useVehicle } from '@/features/vehicles/hooks/use-vehicles'
 import { useWorkOrdersByVehicle } from '@/features/work-orders/hooks/use-work-orders'
 import { WorkOrderStatusBadge } from '@/features/work-orders/components/work-order-status-badge'
 import { VehicleTimeline } from '@/features/vehicles/components/vehicle-timeline'
+import { VehicleGallery } from '@/features/attachments/components/vehicle-gallery'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -160,6 +161,15 @@ export default function VehicleDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Photos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <VehicleGallery vehicleId={id} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

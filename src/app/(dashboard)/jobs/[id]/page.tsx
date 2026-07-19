@@ -3,13 +3,15 @@
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Pencil, Copy, FileText } from 'lucide-react'
+import { ArrowLeft, Pencil, Copy } from 'lucide-react'
 import { useWorkOrder, useCopyWorkOrder } from '@/features/work-orders/hooks/use-work-orders'
 import { useUpdateWorkOrder } from '@/features/work-orders/hooks/use-work-orders'
 import { useShopSettings } from '@/features/settings/hooks/use-settings'
 import { WorkOrderStatusBadge } from '@/features/work-orders/components/work-order-status-badge'
 import { LineItemTable } from '@/features/line-items/components/line-item-table'
 import { PaymentList } from '@/features/payments/components/payment-list'
+import { JobGallery } from '@/features/attachments/components/job-gallery'
+import { DropoffInspection } from '@/features/attachments/components/dropoff-inspection'
 
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -245,22 +247,26 @@ export default function WorkOrderDetailPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="line-items">
+          <Tabs defaultValue="line-items">
         <TabsList>
           <TabsTrigger value="line-items">Line Items</TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
+          <TabsTrigger value="dropoff">Drop-off Inspection</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
         </TabsList>
           <TabsContent value="line-items" className="space-y-4">
           <LineItemTable workOrderId={id} currency={workOrder.currency} />
         </TabsContent>
         <TabsContent value="photos">
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              <FileText className="mx-auto h-8 w-8 mb-2" />
-              <p>Photo management coming soon.</p>
-            </CardContent>
-          </Card>
+          <JobGallery workOrderId={id} />
+        </TabsContent>
+        <TabsContent value="dropoff">
+          <DropoffInspection
+            workOrderId={id}
+            conditionNotes={workOrder.dropoff_condition_notes}
+            representativeName={workOrder.dropoff_representative_name}
+            representativeId={workOrder.dropoff_representative_id}
+          />
         </TabsContent>
         <TabsContent value="payments">
           <Card>

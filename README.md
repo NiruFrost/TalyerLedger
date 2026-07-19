@@ -34,7 +34,7 @@ src/
 │   ├── forms/                # Shared form components
 │   └── pdf/                  # Invoice PDF components (react-pdf)
 ├── db/
-│   └── migrations/           # 7 SQL migration files
+│   └── migrations/           # 8 SQL migration files
 ├── features/                 # Feature-based modules
 │   ├── auth/                 # Authentication (login, register, logout)
 │   ├── customers/            # Customer CRUD + restore
@@ -44,14 +44,17 @@ src/
 │   ├── payments/             # Payment CRUD (deposit/regular)
 │   ├── labor-catalog/        # Labor items CRUD + picker
 │   ├── service-packages/     # Service packages CRUD + picker
+│   ├── attachments/          # Digital evidence: upload, gallery, viewer, before/after, drop-off, vehicle/job/line-item galleries
 │   ├── search/               # Global search (Ctrl+K)
 │   └── settings/             # Shop settings + catalog/packages UI
 ├── hooks/                    # Shared hooks
 ├── lib/
 │   ├── supabase/             # Supabase client (browser, server, middleware)
+│   ├── storage/service.ts    # Abstracted StorageService (Supabase, ready for Cloudflare R2)
+│   ├── image/processor.ts    # Client-side image processing (resize, strip EXIF, thumbnail, validate)
 │   ├── types.ts              # TypeScript interfaces
 │   ├── utils.ts              # cn(), formatCurrency, formatDate, estimate_no
-│   └── constants.ts          # Enums, statuses, units, events
+│   └── constants.ts          # Enums, statuses, units, events, attachment categories
 ├── middleware.ts             # Auth middleware (session refresh + redirect)
 └── proxy.ts                  # Next.js 16 proxy
 ```
@@ -107,8 +110,12 @@ shop_settings (single row)
 - **Audit logs** — `created_at`, `updated_at`, `created_by`, `updated_by` on every table
 - **Soft deletes** — `deleted_at` column instead of permanent removal
 - **Row Level Security** — All tables have RLS policies for authenticated users
-- **Database migrations** — 7 SQL files managed from day one
+- **Database migrations** — 8 SQL files managed from day one
 - **Unit combobox** — Free-text unit input with predefined dropdown
+- **Repair Documentation** — Client-side image processing (resize 1920px, strip EXIF/GPS, 400px thumbnail, MIME validation)
+- **Storage abstraction** — `StorageService` interface for Supabase Storage with signed URLs; ready for Cloudflare R2 migration
+- **Drop-off inspection** — Condition notes, representative info, category-based photo galleries per work order
+- **PDF photo appendix** — Optional photo appendix page in generated PDFs with 6 images per A4 page
 
 ## Running Migrations
 
@@ -121,6 +128,7 @@ Apply via Supabase SQL editor in order:
 5. `00005_work_order_document_attachment.sql` — Rename jobs→work_orders, attachments
 6. `00006_status_workflow_internal_notes.sql` — Status workflow, internal notes
 7. `00007_notifications_labor_packages.sql` — Notifications, labor catalog, packages
+8. `00008_repair_documentation.sql` — Repair documentation & digital evidence (evolve attachments, drop-off inspection, photo appendix)
 
 ## Environment Variables
 
@@ -183,6 +191,24 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ### Vehicle Timeline
 - [x] Visual vertical timeline on vehicle detail page
 - [x] Shows work orders grouped by date with status badges
+
+### Repair Documentation & Digital Evidence
+- [x] Client-side image processing: resize (1920px), strip EXIF/GPS, compress, generate 400px thumbnail
+- [x] MIME validation (JPG, PNG, WebP) and 10MB size enforcement
+- [x] Camera-first mobile upload with drag-and-drop desktop support
+- [x] 12 attachment categories (before, during, after, damage, vehicle_overview, odometer, vin, plate_number, authorization_letter, tool_condition_out, tool_condition_in, other)
+- [x] Full-screen lightbox viewer with zoom and keyboard navigation
+- [x] Before/after slider comparison with side-by-side mode
+- [x] Vehicle gallery with per-category tabs
+- [x] Job gallery with sectioned cards per category
+- [x] Line-item evidence inline gallery
+- [x] Drop-off inspection form (condition notes, representative info, category photos, auth docs)
+- [x] Timeline integration (attachment upload creates activity_log event)
+- [x] Optional PDF photo appendix (6 images per A4 page)
+- [x] Storage abstraction via `StorageService` interface (Supabase, ready for Cloudflare R2)
+- [x] Signed URLs only — no public bucket exposure
+- [x] RLS policies on attachments table (select/insert/update/delete)
+- [x] Auto-created private storage bucket with 10MB file size limit
 
 ### UI/UX
 - [x] Responsive dashboard with collapsible sidebar

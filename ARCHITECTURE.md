@@ -1,8 +1,8 @@
 # TalyerLedger — Architecture & Implementation Guide
 
-> **Version:** 2.2.1  
+> **Version:** 2.3.0  
 > **Stack:** Next.js 16 + React 19 + Supabase + TypeScript  
-> **Status:** v2 Features Complete — Labor Catalog / Service Packages / Vehicle Timeline / Notifications / Settings Management
+> **Status:** Phase 2 Complete — Repair Documentation & Digital Evidence Module
 
 ---
 
@@ -16,8 +16,9 @@
 6. [Component Library](#6-component-library)
 7. [Data Flow](#7-data-flow)
 8. [Phase 0 & Phase 1 Completion](#8-phase-0--phase-1-completion)
-9. [Migration Summary](#9-migration-summary)
-10. [Build Verification](#10-build-verification)
+9. [Phase 2 — Repair Documentation & Digital Evidence](#9-phase-2--repair-documentation--digital-evidence)
+10. [Migration Summary](#10-migration-summary)
+11. [Build Verification](#11-build-verification)
 
 ---
 
@@ -146,7 +147,7 @@ src/
 │   ├── layout/                   # DashboardShell, Header, Sidebar
 │   ├── pdf/                      # Work Order PDF generation (react-pdf) — Service Estimate / Statement of Account / Payment Acknowledgment
 │   └── ui/                       # 19 shadcn/ui components
-├── db/migrations/                # 7 SQL migration files
+├── db/migrations/                # 8 SQL migration files
 ├── features/
 │   ├── auth/                     # Login, register, logout
 │   ├── customers/                # Customer CRUD + restore
@@ -156,11 +157,28 @@ src/
 │   ├── payments/                 # Payment CRUD (actions, hooks, form, list) (FK: work_order_id)
 │   ├── labor-catalog/            # Labor items CRUD + picker for work order form
 │   ├── service-packages/         # Service packages CRUD + picker for work order form
+│   ├── attachments/              # Digital evidence: upload, gallery, viewer, before/after, drop-off inspection, vehicle/job/line-item galleries
+│   │   ├── actions.ts            # CRUD + createAttachmentAndLog (with timeline integration)
+│   │   ├── hooks/use-attachments.ts  # React Query hooks including useUploadAttachment
+│   │   └── components/
+│   │       ├── attachment-upload.tsx       # Camera-first dialog, drag-drop, progress
+│   │       ├── attachment-card.tsx          # Thumbnail card with badge, actions
+│   │       ├── attachment-gallery.tsx       # Responsive grid with filter
+│   │       ├── attachment-viewer.tsx        # Full-screen lightbox, zoom, keyboard nav
+│   │       ├── before-after-comparison.tsx  # Slider + side-by-side comparison
+│   │       ├── vehicle-gallery.tsx          # Per-category tabs for vehicle
+│   │       ├── job-gallery.tsx              # Sectioned (before/during/after/damage) for jobs
+│   │       ├── line-item-attachments.tsx    # Evidence per line item
+│   │       └── dropoff-inspection.tsx       # Condition notes + category photos + docs
 │   ├── search/                   # Global search command palette
 │   └── settings/                 # Shop settings CRUD + settings-tabs (catalog, packages, notifications)
 ├── hooks/
 │   ├── use-media-query.ts        # Responsive breakpoint hook
 │   └── use-toast.ts              # Toast notification hook
+├── lib/storage/
+│   └── service.ts                # Abstracted StorageService (upload, getSignedUrl, delete) — ready for R2 migration
+├── lib/image/
+│   └── processor.ts              # Client-side image processing: validate EXIF/MIME, resize 1920px, strip EXIF/GPS, generate 400px thumbnails
 ├── lib/
 │   ├── supabase/
 │   │   ├── client.ts             # Browser client
@@ -188,11 +206,15 @@ customers (1) ───< vehicles (N)
             ├──< payments (N)
             ├──< documents (N)
             ├──< activity_logs (N)
-            └──< attachments (N)
+            ├──< attachments (N)          # Polymorphic: vehicle / work_order / line_item
+            └──< labor_items (N)
+            └──< service_packages (N)
+                    └──< package_items (N)
 
 work_orders — self-ref via linked_work_order_id
 
 shop_settings (single row)
+notifications (standalone)
 ```
 
 ### Tables
@@ -201,13 +223,13 @@ shop_settings (single row)
 |---|---|---|
 | `customers` | `id (UUID PK)`, `name`, `email`, `phone`, `address`, `notes`, `deleted_at` | FK to `vehicles`, `work_orders` |
 | `vehicles` | `id (UUID PK)`, `customer_id`, `make`, `model`, `year`, `engine`, `transmission`, `vin`, `plate`, `color`, `cover_photo`, `deleted_at` | FK → `customers` |
-| `work_orders` | `id (UUID PK)`, `estimate_no (UNIQUE)`, `vehicle_id`, `customer_id`, `status`, `payer_type`, `insurance_company`, `insurance_policy_no`, `insurance_claim_no`, `linked_work_order_id`, `date`, `currency`, `deleted_at` | FK → `vehicles`, `customers`, `work_orders` (self-ref) |
+| `work_orders` | `id (UUID PK)`, `estimate_no (UNIQUE)`, `vehicle_id`, `customer_id`, `status`, `payer_type`, `insurance_company`, `insurance_policy_no`, `insurance_claim_no`, `linked_work_order_id`, `date`, `currency`, `dropoff_condition_notes`, `dropoff_representative_name`, `dropoff_representative_id`, `dropoff_inspected_at`, `deleted_at` | FK → `vehicles`, `customers`, `work_orders` (self-ref) |
 | `line_items` | `id (UUID PK)`, `work_order_id`, `category`, `item`, `quantity`, `unit_price`, `line_total`, `is_inventory`, `deleted_at` | FK → `work_orders` (CASCADE) |
 | `payments` | `id (UUID PK)`, `work_order_id`, `date`, `amount`, `payment_method`, `payment_type`, `reference_number`, `deleted_at` | FK → `work_orders` (RESTRICT) |
 | `documents` | `id (UUID PK)`, `work_order_id`, `document_type`, `label`, `generated_at`, `file_url`, `created_by` | FK → `work_orders` |
 | `activity_logs` | `id (UUID PK)`, `work_order_id`, `event`, `description`, `metadata (jsonb)`, `created_by` | FK → `work_orders` |
-| `attachments` | `id (UUID PK)`, `parent_type`, `parent_id`, `file_url`, `file_type`, `file_name`, `file_size`, `notes` | Polymorphic via parent_type+parent_id |
-| `shop_settings` | `id (UUID PK)`, `shop_name`, `address`, `contact`, `email`, `tin`, `dti_bn`, `business_permit`, `tax_id` | Single-row config |
+| `attachments` | `id (UUID PK)`, `parent_type ('vehicle'/'work_order'/'line_item')`, `parent_id`, `attachment_type` (13 categories), `storage_path`, `thumbnail_path`, `file_name`, `file_size`, `mime_type`, `caption`, `file_hash`, `taken_at`, `uploaded_by`, `deleted_at` | Polymorphic via parent_type+parent_id; RLS-protected |
+| `shop_settings` | `id (UUID PK)`, `shop_name`, `address`, `contact`, `email`, `tin`, `dti_bn`, `business_permit`, `tax_id`, `include_photo_appendix` | Single-row config |
 
 ### Common Columns
 
@@ -224,7 +246,8 @@ All tables have `ENABLE ROW LEVEL SECURITY` with:
 - **SELECT:** Authenticated users (active records only where applicable)
 - **INSERT:** Authenticated users
 - **UPDATE:** Authenticated users
-- **Storage:** 4 policies on `photos` bucket (SELECT, INSERT, UPDATE, DELETE)
+- **Storage:** Bucket auto-created by `StorageService`; signed URLs only — no public exposure
+- **Attachments:** Named policies (attachments_select, attachments_insert, attachments_update, attachments_delete) with `deleted_at IS NULL` filter on SELECT
 
 ### Work Order Status Enum
 
@@ -434,9 +457,140 @@ Component → Form (react-hook-form + zodResolver)
 | `PAYMENT_STATUSES` | Updated to: unpaid, partial, paid, refund (replaces overpaid) |
 | Auto-derivation | `recalculatePaymentStatus()` in payment actions updates `work_orders.payment_status` after create/update/delete |
 
+## 9. Phase 2 — Repair Documentation & Digital Evidence
+
+### Overview
+
+Phase 2 introduces a comprehensive digital evidence module replacing the legacy `photos` table. Every image is processed client-side (compress, strip EXIF/GPS, resize to 1920px, generate 400px thumbnail), validated (MIME signature check), and stored via an abstracted `StorageService` (Supabase Storage, ready for Cloudflare R2 migration). Signed URLs prevent public bucket exposure.
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                   Client (React 19)                       │
+│                                                          │
+│  ┌────────────────┐  ┌──────────────────────────┐        │
+│  │  Image Processor│  │  StorageService           │        │
+│  │  (processImage, │  │  (upload, getSignedUrl,   │        │
+│  │   validateImage,│  │   delete, getPublicUrl)   │        │
+│  │   stripExif)    │  └──────────────────────────┘        │
+│  └────────────────┘                                       │
+│         │                                                 │
+│         ▼                                                 │
+│  ┌──────────────────────────────────────────┐             │
+│  │          Attachment Components             │             │
+│  │  Upload  │  Gallery  │  Viewer  │  Card   │             │
+│  │  Before/After  │  Drop-off  │  Galleries │             │
+│  └──────────────────────────────────────────┘             │
+│         │                                                 │
+│         ▼                                                 │
+│  ┌──────────────────────────────────────────┐             │
+│  │      React Query Hooks (use-attachments)  │             │
+│  │  useUploadAttachment - validates +         │             │
+│  │    processes + uploads + creates record    │             │
+│  └──────────────────────────────────────────┘             │
+│         │                                                 │
+│         ▼                                                 │
+│  ┌──────────────────────────────────────────┐             │
+│  │        Server Actions (actions.ts)        │             │
+│  │  CRUD + createAttachmentAndLog            │             │
+│  │  (attachment + timeline event)            │             │
+│  └──────────────────────────────────────────┘             │
+└──────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────────────────────────────┐
+│                    Supabase Backend                        │
+│  ┌──────────┐  ┌────────────────┐  ┌──────────────┐     │
+│  │PostgreSQL│  │  Auth (RLS)    │  │  Storage     │     │
+│  │attachments│  │ authenticated  │  │ (bucket)     │     │
+│  │work_orders│  │ users only     │  │ signed URLs  │     │
+│  │(dropoff) │  └────────────────┘  └──────────────┘     │
+│  └──────────┘                                            │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Attachment Categories (12)
+
+| Category | Color | Purpose |
+|---|---|---|
+| `before` | `bg-blue-100` | Pre-repair condition |
+| `during` | `bg-yellow-100` | In-progress work |
+| `after` | `bg-green-100` | Completed work |
+| `damage` | `bg-red-100` | Existing damage |
+| `vehicle_overview` | `bg-gray-100` | Full vehicle shots |
+| `odometer` | `bg-purple-100` | Odometer reading |
+| `vin` | `bg-indigo-100` | VIN tag |
+| `plate_number` | `bg-pink-100` | License plate |
+| `authorization_letter` | `bg-orange-100` | Signed auth docs |
+| `tool_condition_out` | `bg-teal-100` | Tool condition (out) |
+| `tool_condition_in` | `bg-cyan-100` | Tool condition (returned) |
+| `other` | `bg-gray-100` | Uncategorized |
+
+### Image Processing Pipeline
+
+| Step | Detail |
+|---|---|
+| 1. MIME Validation | Checks `file.type` against accepted list (image/jpeg, image/png, image/webp); canvas re-encoding validates actual content |
+| 2. EXIF/GPS Stripping | Uses `canvas` to re-encode the image, stripping all metadata |
+| 3. Resize | Max 1920px on longest side (maintains aspect ratio) |
+| 4. Compression | JPEG quality 0.8; PNG/WebP re-encoded |
+| 5. Thumbnail | 400px wide version for gallery cards |
+| 6. Hash | SHA-256 of raw file bytes for deduplication |
+
+### Storage Abstraction
+
+```typescript
+interface StorageService {
+  upload(bucket: string, path: string, file: Blob): Promise<string>
+  getSignedUrl(path: string, expiresIn?: number): Promise<string>
+  delete(path: string): Promise<void>
+  getPublicUrl(path: string): string
+}
+```
+
+Currently backed by Supabase Storage. To migrate to Cloudflare R2:
+1. Implement the same interface using `@aws-sdk/client-s3` targeting R2
+2. Switch the import in `attachment-upload.tsx` and `download-pdf-button.tsx`
+
+### Drop-off Inspection
+
+New fields on `work_orders`: `dropoff_condition_notes`, `dropoff_representative_name`, `dropoff_representative_id`, `dropoff_inspected_at`.
+
+The `DropoffInspection` component displays condition notes, representative info, vehicle overview/damage photos, and authorization letter documents.
+
+### PDF Photo Appendix
+
+When `include_photo_appendix` is enabled in `shop_settings`, the PDF download button fetches all work order attachments with signed URLs and renders them on additional A4 pages (6 per page) as a "Photo Appendix" section.
+
+### Feature List
+
+| Component | Location | Purpose |
+|---|---|---|
+| `AttachmentUpload` | `src/features/attachments/components/attachment-upload.tsx` | Dialog: drag-drop, camera capture, category select, caption, progress, multi-file |
+| `AttachmentCard` | `src/features/attachments/components/attachment-card.tsx` | Thumbnail lazyload, category badge, caption, date, download/delete |
+| `AttachmentGallery` | `src/features/attachments/components/attachment-gallery.tsx` | Responsive grid, skeleton loading, empty state, upload button, optional category filter |
+| `AttachmentViewer` | `src/features/attachments/components/attachment-viewer.tsx` | Full-screen lightbox, zoom (scroll/pinch), keyboard navigation (arrows/esc), prev/next |
+| `BeforeAfterComparison` | `src/features/attachments/components/before-after-comparison.tsx` | Slider + side-by-side modes for comparing before/after images |
+| `VehicleGallery` | `src/features/attachments/components/vehicle-gallery.tsx` | Per-category tabs (all, by category), embedded Before/After, empty state |
+| `JobGallery` | `src/features/attachments/components/job-gallery.tsx` | Sectioned by category (before/during/after/damage/odometer/other), embedded Before/After |
+| `LineItemAttachments` | `src/features/attachments/components/line-item-attachments.tsx` | Evidence per line item with inline gallery |
+| `DropoffInspection` | `src/features/attachments/components/dropoff-inspection.tsx` | Condition notes + category-specific photo galleries + auth docs |
+
+### Migration 00008 Details
+
+| Change | Details |
+|---|---|
+| `attachments` evolution | New columns: `storage_path`, `thumbnail_path`, `taken_at`, `uploaded_by`, `updated_at`, `updated_by`. Dropped: `url`, `thumbnail_url`. Updated CHECK constraints for new categories (before/during/after/damage/vehicle_overview/odometer/vin/plate_number/authorization_letter/tool_condition_out/tool_condition_in/other) and parent types (vehicle/work_order/line_item) |
+| `work_orders` | Added `dropoff_condition_notes`, `dropoff_representative_name`, `dropoff_representative_id`, `dropoff_inspected_at` |
+| `shop_settings` | Added `include_photo_appendix BOOLEAN DEFAULT false` |
+| RLS | Named policies: `attachments_select` (deleted_at IS NULL), `attachments_insert`, `attachments_update`, `attachments_delete` |
+| Indexes | 6 new indexes: parent_type, parent, attachment_type, taken_at, uploaded_by, deleted_at |
+| Triggers | `set_attachments_created_by`, `set_attachments_updated_by`, `update_attachments_updated_at` |
+
 ---
 
-## 9. Migration Summary
+## 10. Migration Summary
 
 | File | Description | Status |
 |---|---|---|
@@ -447,6 +601,7 @@ Component → Form (react-hook-form + zodResolver)
 | `00005_work_order_document_attachment.sql` | Rename jobs→work_orders, FK column renames (job_id→work_order_id, linked_job_id→linked_work_order_id), indexes/triggers renamed; new tables: documents, activity_logs, attachments (polymorphic, replaces photos) | Applied |
 | `00006_status_workflow_internal_notes.sql` | Add internal_notes + payment_status to work_orders; replace status enum with new workflow (in_progress, completed, released); STATUS_TRANSITIONS; auto-derive payment_status | Applied |
 | `00007_notifications_labor_packages.sql` | Create notifications, labor_items, service_packages, package_items tables with RLS | Applied |
+| `00008_repair_documentation.sql` | Evolve attachments (storage_path, thumbnail_path, categories, RLS), drop-off fields on work_orders, include_photo_appendix on shop_settings | Pending |
 
 ### Migration Order
 
@@ -459,11 +614,12 @@ Component → Form (react-hook-form + zodResolver)
 -- 5. 00005 (work_order, document, attachment)
 -- 6. 00006 (status workflow + internal notes)
 -- 7. 00007 (notifications, labor catalog, service packages)
+-- 8. 00008 (repair documentation)
 ```
 
 ---
 
-## 10. Build Verification
+## 11. Build Verification
 
 ### Current Status
 
@@ -492,7 +648,7 @@ npx tsc --noEmit   → 0 errors
 | Feature | Current Support |
 |---|---|---|
 | Inventory | ✅ `is_inventory` on line_items |
-| Attachments (replaces photos) | ✅ `attachments` table (polymorphic), `photos` table deprecated; storage bucket + UI not yet built |
+| Attachments (replaces photos) | ✅ Full Phase 2 module: upload dialog, lightbox viewer, category gallery, before/after slider, vehicle/job/line-item galleries, drop-off inspection, image processing (EXIF strip, resize, compress, thumbnail), storage abstraction with signed URLs, PDF photo appendix |
 | Document printing / PDF | ✅ `documents` table schema for tracking generated PDFs; PDF generation via react-pdf; UI for document list not yet built |
 | Activity Timeline | ✅ `activity_logs` table with metadata (jsonb); UI not yet built |
 | Payments ledger | ✅ Full CRUD with payment_type (deposit/regular) |

@@ -16,9 +16,11 @@ export type DiscountType = 'amount' | 'percent'
 
 export type DocumentType = 'estimate' | 'statement_of_account' | 'payment_acknowledgment' | 'job_order'
 
-export type AttachmentType = 'image' | 'pdf' | 'docx' | 'xlsx' | 'video' | 'other'
+export type AttachmentFileType = 'image' | 'pdf' | 'docx' | 'xlsx' | 'video' | 'other'
 
-export type AttachmentParentType = 'work_order' | 'vehicle' | 'customer' | 'line_item'
+export type AttachmentCategory = 'before' | 'during' | 'after' | 'damage' | 'vehicle_overview' | 'odometer' | 'vin' | 'plate_number' | 'authorization_letter' | 'tool_condition_out' | 'tool_condition_in' | 'other'
+
+export type AttachmentParentType = 'vehicle' | 'work_order' | 'line_item'
 
 export type NotificationEvent = 'pickup_ready' | 'warranty_expiring' | 'payment_overdue' | 'tool_overdue' | 'scheduled_maintenance' | 'insurance_approved'
 
@@ -105,6 +107,10 @@ export interface WorkOrder {
   notes: string | null
   internal_notes: string | null
   terms: string | null
+  dropoff_condition_notes: string | null
+  dropoff_representative_name: string | null
+  dropoff_representative_id: string | null
+  dropoff_inspected_at: string | null
   created_at: string
   updated_at: string
   created_by: string | null
@@ -136,6 +142,10 @@ export interface WorkOrderInsert {
   notes?: string | null
   internal_notes?: string | null
   terms?: string | null
+  dropoff_condition_notes?: string | null
+  dropoff_representative_name?: string | null
+  dropoff_representative_id?: string | null
+  dropoff_inspected_at?: string | null
 }
 
 export type WorkOrderUpdate = Partial<WorkOrderInsert> & { status?: WorkOrderStatus; payment_status?: PaymentStatus }
@@ -268,15 +278,38 @@ export interface Attachment {
   id: string
   parent_type: AttachmentParentType
   parent_id: string
-  attachment_type: AttachmentType
-  url: string
-  thumbnail_url: string | null
+  attachment_type: AttachmentCategory
+  mime_type: string | null
+  storage_path: string
+  thumbnail_path: string | null
   caption: string | null
   file_size: number | null
-  mime_type: string | null
+  taken_at: string | null
+  uploaded_by: string | null
   created_at: string
+  updated_at: string
   created_by: string | null
+  updated_by: string | null
   deleted_at: string | null
+}
+
+export interface AttachmentInsert {
+  parent_type: AttachmentParentType
+  parent_id: string
+  attachment_type: AttachmentCategory
+  mime_type?: string | null
+  storage_path: string
+  thumbnail_path?: string | null
+  caption?: string | null
+  file_size?: number | null
+  taken_at?: string | null
+}
+
+export type AttachmentUpdate = Partial<AttachmentInsert> & { id: string }
+
+export interface AttachmentWithUrl extends Attachment {
+  signed_url: string
+  thumbnail_signed_url: string | null
 }
 
 export interface DashboardStats {
