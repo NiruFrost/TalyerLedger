@@ -1,72 +1,16 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import { format, parseISO } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Wrench } from 'lucide-react'
-
-interface TimelineEvent {
-  id: string
-  title: string
-  status?: string
-  date: string
-  year: number
-}
+import { getVehicleTimeline, type TimelineEvent } from '../timeline'
+import { queryKeys } from '@/lib/query/keys'
 
 export function VehicleTimeline({ vehicleId }: { vehicleId: string }) {
   const { data: events, isLoading, error } = useQuery({
-    queryKey: ['vehicle-timeline', vehicleId],
-    queryFn: async () => {
-      const supabase = createClient()
-      const workOrders: { id: string; order_no: string; status: string; created_at: string }[] = []
-      const lineItemsByWo: Record<string, { item: string }[]> = {}
-
-      const { data: woData } = await supabase
-        .from('work_orders')
-        .select('id, order_no, status, created_at')
-        .eq('vehicle_id', vehicleId)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-
-      if (woData) {
-        for (const wo of woData) {
-          workOrders.push(wo as { id: string; order_no: string; status: string; created_at: string })
-        }
-        const ids = woData.map((wo: { id: string }) => wo.id)
-        if (ids.length > 0) {
-          const { data: liData } = await supabase
-            .from('line_items')
-            .select('work_order_id, item')
-            .in('work_order_id', ids)
-            .is('deleted_at', null)
-            .order('sort_order')
-          if (liData) {
-            for (const li of liData) {
-              const item = li as { work_order_id: string; item: string }
-              if (!lineItemsByWo[item.work_order_id]) lineItemsByWo[item.work_order_id] = []
-              if (lineItemsByWo[item.work_order_id].length === 0) {
-                lineItemsByWo[item.work_order_id].push({ item: item.item })
-              }
-            }
-          }
-        }
-      }
-
-      const events_: TimelineEvent[] = workOrders.map((wo) => {
-        const d = parseISO(wo.created_at)
-        const firstItem = lineItemsByWo[wo.id]?.[0]?.item
-        return {
-          id: wo.id,
-          title: firstItem || `Work Order #${wo.order_no}`,
-          status: wo.status,
-          date: wo.created_at,
-          year: d.getFullYear(),
-        }
-      })
-
-      return events_.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    },
+    queryKey: queryKeys.vehicles.timeline(vehicleId),
+    queryFn: () => getVehicleTimeline(vehicleId),
   })
 
   if (isLoading) {

@@ -7,6 +7,7 @@ import { CategoryTotals } from './category-totals'
 import { LineItemForm } from './line-item-form'
 import { LINE_ITEM_CATEGORIES } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
+import { calculateWorkOrderFinancials } from '@/lib/financial-calculations'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -27,14 +28,21 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import type { LineItem } from '@/lib/types'
+import type { DiscountType, LineItem } from '@/lib/types'
 
 interface LineItemTableProps {
   workOrderId: string
   currency?: string
+  overallDiscountType?: DiscountType | null
+  overallDiscountValue?: number
 }
 
-export function LineItemTable({ workOrderId, currency = 'PHP' }: LineItemTableProps) {
+export function LineItemTable({
+  workOrderId,
+  currency = 'PHP',
+  overallDiscountType,
+  overallDiscountValue,
+}: LineItemTableProps) {
   const { data: lineItems, isLoading, error } = useLineItems(workOrderId)
   const deleteLineItem = useDeleteLineItem()
   const [editingItem, setEditingItem] = useState<LineItem | null>(null)
@@ -54,6 +62,15 @@ export function LineItemTable({ workOrderId, currency = 'PHP' }: LineItemTablePr
   }
 
   const items = lineItems ?? []
+  const calculations = calculateWorkOrderFinancials({
+    lineItems: items,
+    overallDiscountType,
+    overallDiscountValue,
+  })
+  const lineTotals = new Map(items.map((item, index) => [item.id, calculations.lines[index].net]))
+  const categoryTotals = new Map(
+    calculations.categoryTotals.map(({ category, total }) => [category, total])
+  )
 
   const groupedItems = LINE_ITEM_CATEGORIES.map((cat) => ({
     ...cat,
@@ -68,8 +85,6 @@ export function LineItemTable({ workOrderId, currency = 'PHP' }: LineItemTablePr
       setDeleteId(null)
     }
   }
-
-  const grandTotal = items.reduce((sum, item) => sum + item.line_total, 0)
 
   return (
     <div className="space-y-4">
@@ -96,7 +111,7 @@ export function LineItemTable({ workOrderId, currency = 'PHP' }: LineItemTablePr
                 <TableHead className="text-right">Qty</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead className="text-right">Unit Price</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Net Total</TableHead>
                 <TableHead className="w-[70px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -120,7 +135,7 @@ export function LineItemTable({ workOrderId, currency = 'PHP' }: LineItemTablePr
                       {formatCurrency(item.unit_price, currency)}
                     </TableCell>
                     <TableCell className="text-right font-mono font-medium">
-                      {formatCurrency(item.line_total, currency)}
+                      {formatCurrency(lineTotals.get(item.id) ?? 0, currency)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -151,20 +166,39 @@ export function LineItemTable({ workOrderId, currency = 'PHP' }: LineItemTablePr
                     {group.label} Total
                   </TableCell>
                   <TableCell className="text-right font-mono font-medium">
-                    {formatCurrency(
-                      group.items.reduce((sum, i) => sum + i.line_total, 0),
-                      currency
-                    )}
+                    {formatCurrency(categoryTotals.get(group.value) ?? 0, currency)}
                   </TableCell>
                   <TableCell />
                 </TableRow>,
               ])}
-              <TableRow key="grand-total" className="font-semibold">
+              {calculations.overallDiscount > 0 && (
+                <>
+                  <TableRow key="grand-subtotal">
+                    <TableCell colSpan={7} className="text-right font-medium">
+                      Grand Subtotal
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-medium">
+                      {formatCurrency(calculations.grandSubtotal, currency)}
+                    </TableCell>
+                    <TableCell />
+                  </TableRow>
+                  <TableRow key="overall-discount">
+                    <TableCell colSpan={7} className="text-right font-medium">
+                      Overall Discount
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-medium">
+                      -{formatCurrency(calculations.overallDiscount, currency)}
+                    </TableCell>
+                    <TableCell />
+                  </TableRow>
+                </>
+              )}
+              <TableRow key="total-net" className="font-semibold">
                 <TableCell colSpan={7} className="text-right">
-                  Grand Total
+                  Total Net
                 </TableCell>
                 <TableCell className="text-right font-mono">
-                  {formatCurrency(grandTotal, currency)}
+                  {formatCurrency(calculations.totalNet, currency)}
                 </TableCell>
                 <TableCell />
               </TableRow>
@@ -173,7 +207,12 @@ export function LineItemTable({ workOrderId, currency = 'PHP' }: LineItemTablePr
         </div>
       )}
 
-      <CategoryTotals lineItems={items} currency={currency} />
+      <CategoryTotals
+        lineItems={items}
+        currency={currency}
+        overallDiscountType={overallDiscountType}
+        overallDiscountValue={overallDiscountValue}
+      />
 
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
         <DialogContent>
@@ -212,7 +251,7 @@ export function LineItemTable({ workOrderId, currency = 'PHP' }: LineItemTablePr
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this line item and cannot be undone.
+              This line item will be removed from active records and retained for audit and recovery.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

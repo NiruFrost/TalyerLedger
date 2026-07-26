@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { lineItemFormSchema, type LineItemFormValues } from '../schemas'
 import { useCreateLineItem, useUpdateLineItem } from '../hooks/use-line-items'
@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { LineItem, LineItemCategory } from '@/lib/types'
+import type { DiscountType, LineItem, LineItemCategory } from '@/lib/types'
 
 interface LineItemFormProps {
   workOrderId: string
@@ -33,9 +33,9 @@ export function LineItemForm({ workOrderId, defaultValues, onSuccess, onCancel }
 
   const {
     register,
+    control,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<LineItemFormValues>({
     resolver: zodResolver(lineItemFormSchema),
@@ -45,6 +45,7 @@ export function LineItemForm({ workOrderId, defaultValues, onSuccess, onCancel }
           category: defaultValues.category,
           item: defaultValues.item,
           specification: defaultValues.specification || '',
+          part_number: defaultValues.part_number || '',
           installation_status: defaultValues.installation_status || '',
           quantity: defaultValues.quantity,
           unit: defaultValues.unit,
@@ -58,6 +59,7 @@ export function LineItemForm({ workOrderId, defaultValues, onSuccess, onCancel }
           category: 'parts',
           item: '',
           specification: '',
+          part_number: '',
           installation_status: '',
           quantity: 1,
           unit: 'pc',
@@ -68,6 +70,9 @@ export function LineItemForm({ workOrderId, defaultValues, onSuccess, onCancel }
           sort_order: 0,
         },
   })
+  const category = useWatch({ control, name: 'category' })
+  const unit = useWatch({ control, name: 'unit' })
+  const discountType = useWatch({ control, name: 'discount_type' })
 
   async function onSubmit(data: LineItemFormValues) {
     const payload = {
@@ -79,6 +84,8 @@ export function LineItemForm({ workOrderId, defaultValues, onSuccess, onCancel }
       quantity: data.quantity,
       unit: data.unit,
       unit_price: data.unit_price,
+      discount_type: (data.discount_type || null) as DiscountType | null,
+      discount_value: data.discount_value || 0,
       notes: data.notes || null,
       sort_order: defaultValues?.sort_order ?? 0,
     }
@@ -97,7 +104,7 @@ export function LineItemForm({ workOrderId, defaultValues, onSuccess, onCancel }
         <div className="space-y-2">
           <Label htmlFor="category">Category *</Label>
           <Select
-            value={watch('category')}
+            value={category}
             onValueChange={(value) => setValue('category', value as LineItemFormValues['category'])}
           >
             <SelectTrigger>
@@ -120,9 +127,15 @@ export function LineItemForm({ workOrderId, defaultValues, onSuccess, onCancel }
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="specification">Specification</Label>
-        <Input id="specification" {...register('specification')} />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="specification">Specification</Label>
+          <Input id="specification" {...register('specification')} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="part_number">Part Number</Label>
+          <Input id="part_number" {...register('part_number')} />
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4">
@@ -135,7 +148,7 @@ export function LineItemForm({ workOrderId, defaultValues, onSuccess, onCancel }
         <div className="space-y-2">
           <Label htmlFor="unit">Unit *</Label>
           <UnitCombobox
-            value={watch('unit')}
+            value={unit}
             onChange={(value) => setValue('unit', value)}
           />
         </div>
@@ -151,7 +164,7 @@ export function LineItemForm({ workOrderId, defaultValues, onSuccess, onCancel }
         <div className="space-y-2">
           <Label htmlFor="discount_type">Discount Type</Label>
           <Select
-            value={watch('discount_type')}
+            value={discountType}
             onValueChange={(value) => setValue('discount_type', value)}
           >
             <SelectTrigger>

@@ -6,23 +6,27 @@ import {
   getWorkOrderById,
   getWorkOrdersByVehicle,
   createWorkOrder,
-  updateWorkOrder,
+  createWorkOrderWithItems,
+  transitionWorkOrderStatus,
+  updateWorkOrderWithItems,
   deleteWorkOrder,
   copyWorkOrder,
   restoreWorkOrder,
 } from '../actions'
-import type { WorkOrderInsert, WorkOrderUpdate } from '@/lib/types'
+import type { WorkOrderLineInput } from '../actions'
+import type { WorkOrderInsert, WorkOrderStatus, WorkOrderUpdate } from '@/lib/types'
+import { queryKeys } from '@/lib/query/keys'
 
 export function useWorkOrders() {
   return useQuery({
-    queryKey: ['work-orders'],
+    queryKey: queryKeys.workOrders.all,
     queryFn: getWorkOrders,
   })
 }
 
 export function useWorkOrder(id: string) {
   return useQuery({
-    queryKey: ['work-orders', id],
+    queryKey: queryKeys.workOrders.detail(id),
     queryFn: () => getWorkOrderById(id),
     enabled: !!id,
   })
@@ -30,7 +34,7 @@ export function useWorkOrder(id: string) {
 
 export function useWorkOrdersByVehicle(vehicleId: string) {
   return useQuery({
-    queryKey: ['work-orders', 'vehicle', vehicleId],
+    queryKey: queryKeys.workOrders.byVehicle(vehicleId),
     queryFn: () => getWorkOrdersByVehicle(vehicleId),
     enabled: !!vehicleId,
   })
@@ -42,8 +46,18 @@ export function useCreateWorkOrder() {
   return useMutation({
     mutationFn: (data: WorkOrderInsert) => createWorkOrder(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.all })
     },
+  })
+}
+
+export function useCreateWorkOrderWithItems() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ data, lineItems }: { data: WorkOrderInsert; lineItems: WorkOrderLineInput[] }) =>
+      createWorkOrderWithItems(data, lineItems),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.all }),
   })
 }
 
@@ -51,11 +65,40 @@ export function useUpdateWorkOrder() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: WorkOrderUpdate }) =>
-      updateWorkOrder(id, data),
+    mutationFn: ({
+      id,
+      expectedVersion,
+      status,
+    }: {
+      id: string
+      expectedVersion: number
+      status: WorkOrderStatus
+    }) => transitionWorkOrderStatus(id, expectedVersion, status),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
-      queryClient.invalidateQueries({ queryKey: ['work-orders', variables.id] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.detail(variables.id) })
+    },
+  })
+}
+
+export function useUpdateWorkOrderWithItems() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      expectedVersion,
+      data,
+      lineItems,
+    }: {
+      id: string
+      expectedVersion: number
+      data: WorkOrderUpdate
+      lineItems: WorkOrderLineInput[]
+    }) => updateWorkOrderWithItems(id, expectedVersion, data, lineItems),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.detail(variables.id) })
     },
   })
 }
@@ -66,7 +109,7 @@ export function useDeleteWorkOrder() {
   return useMutation({
     mutationFn: (id: string) => deleteWorkOrder(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.all })
     },
   })
 }
@@ -77,8 +120,8 @@ export function useCopyWorkOrder() {
   return useMutation({
     mutationFn: (sourceId: string) => copyWorkOrder(sourceId),
     onSuccess: (newWorkOrder) => {
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
-      queryClient.invalidateQueries({ queryKey: ['work-orders', newWorkOrder.id] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.detail(newWorkOrder.id) })
     },
   })
 }
@@ -89,7 +132,7 @@ export function useRestoreWorkOrder() {
   return useMutation({
     mutationFn: (id: string) => restoreWorkOrder(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.all })
     },
   })
 }

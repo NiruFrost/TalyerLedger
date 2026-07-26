@@ -1,67 +1,26 @@
-import { createClient } from '@/lib/supabase/client'
 import type { Customer, CustomerInsert, CustomerUpdate } from '@/lib/types'
+import { createSupabaseCustomerRepository } from './repository'
 
 export async function getCustomers(): Promise<Customer[]> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*, vehicles:vehicles(count)')
-    .is('deleted_at', null)
-    .is('vehicles.deleted_at', null)
-    .order('name')
-  if (error) throw error
-  return data as unknown as Customer[]
+  return createSupabaseCustomerRepository().listActive()
 }
 
 export async function getCustomerById(id: string): Promise<Customer | null> {
-  const supabase = createClient()
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('id', id)
-    .is('deleted_at', null)
-    .single()
-  if (error) throw error
-  return data
+  return createSupabaseCustomerRepository().findActiveById(id)
 }
 
 export async function createCustomer(data: CustomerInsert): Promise<Customer> {
-  const supabase = createClient()
-  const { data: newCustomer, error } = await supabase
-    .from('customers')
-    .insert(data)
-    .select()
-    .single()
-  if (error) throw error
-  return newCustomer
+  return createSupabaseCustomerRepository().create(data)
 }
 
 export async function updateCustomer(id: string, data: CustomerUpdate): Promise<Customer> {
-  const supabase = createClient()
-  const { data: updatedCustomer, error } = await supabase
-    .from('customers')
-    .update(data)
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) throw error
-  return updatedCustomer
+  return createSupabaseCustomerRepository().update(id, data)
 }
 
 export async function deleteCustomer(id: string): Promise<void> {
-  const supabase = createClient()
-  const { error } = await supabase
-    .from('customers')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw error
+  return createSupabaseCustomerRepository().softDelete(id)
 }
 
 export async function restoreCustomer(id: string): Promise<void> {
-  const supabase = createClient()
-  const { error } = await supabase
-    .from('customers')
-    .update({ deleted_at: null })
-    .eq('id', id)
-  if (error) throw error
+  return createSupabaseCustomerRepository().restore(id)
 }

@@ -30,7 +30,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { formatCurrency, formatDate, calculateJobTotal } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
+import { calculateWorkOrderFinancials } from '@/lib/financial-calculations'
 
 interface WorkOrderTableProps {
   filter?: string
@@ -120,7 +121,11 @@ export function WorkOrderTable({ filter = 'all', onEdit }: WorkOrderTableProps) 
               </TableCell>
               <TableCell className="text-right font-mono">
                 {formatCurrency(
-                  wo.line_items ? calculateJobTotal(wo.line_items) : 0,
+                  calculateWorkOrderFinancials({
+                    lineItems: wo.line_items,
+                    overallDiscountType: wo.overall_discount_type,
+                    overallDiscountValue: wo.overall_discount_value,
+                  }).totalNet,
                   wo.currency
                 )}
               </TableCell>

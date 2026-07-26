@@ -10,42 +10,24 @@ export interface UploadResult {
 export interface StorageService {
   upload(file: File, path: string): Promise<UploadResult>
   getSignedUrl(path: string, expiresIn?: number): Promise<string>
-  delete(path: string): Promise<void>
-  getPublicUrl(path: string): string
-}
-
-async function ensureBucket(): Promise<void> {
-  const supabase = createClient()
-  const { data: buckets } = await supabase.storage.listBuckets()
-  if (!buckets?.find((b) => b.name === BUCKET)) {
-    await supabase.storage.createBucket(BUCKET, { public: false, fileSizeLimit: 10 * 1024 * 1024 })
-  }
 }
 
 export const storageService: StorageService = {
   async upload(file: File, path: string): Promise<UploadResult> {
-    const supabase = createClient()
-    await ensureBucket()
-    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, cacheControl: '3600' })
-    if (error) throw error
-    const { data: urlData } = await supabase.storage.from(BUCKET).createSignedUrl(path, 60 * 60 * 24)
-    return { path, url: urlData?.signedUrl ?? '' }
+    const form = new FormData()
+    form.set('file', file)
+    form.set('path', path)
+    const response = await fetch('/api/attachments/upload', { method: 'POST', body: form })
+    const result = await response.json() as { path?: string; error?: string }
+    if (!response.ok || !result.path) throw new Error(result.error ?? 'Attachment upload failed')
+
+    return { path: result.path, url: '' }
   },
 
   async getSignedUrl(path: string, expiresIn = 3600): Promise<string> {
     const supabase = createClient()
-    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresIn)
-    return data?.signedUrl ?? ''
-  },
-
-  async delete(path: string): Promise<void> {
-    const supabase = createClient()
-    await supabase.storage.from(BUCKET).remove([path])
-  },
-
-  getPublicUrl(path: string): string {
-    const supabase = createClient()
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
-    return data.publicUrl
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresIn)
+    if (error || !data?.signedUrl) throw error ?? new Error('Signed attachment URL was not returned')
+    return data.signedUrl
   },
 }

@@ -10,10 +10,11 @@ import {
   restoreCustomer,
 } from '../actions'
 import type { CustomerInsert, CustomerUpdate } from '@/lib/types'
+import { queryKeys } from '@/lib/query/keys'
 
 export function useCustomers() {
   const query = useQuery({
-    queryKey: ['customers'],
+    queryKey: queryKeys.customers.all,
     queryFn: getCustomers,
   })
 
@@ -26,7 +27,7 @@ export function useCustomers() {
 
 export function useCustomer(id: string) {
   return useQuery({
-    queryKey: ['customers', id],
+    queryKey: queryKeys.customers.detail(id),
     queryFn: () => getCustomerById(id),
     enabled: !!id,
   })
@@ -38,7 +39,7 @@ export function useCreateCustomer() {
   return useMutation({
     mutationFn: (data: CustomerInsert) => createCustomer(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all })
     },
   })
 }
@@ -50,8 +51,8 @@ export function useUpdateCustomer() {
     mutationFn: ({ id, data }: { id: string; data: CustomerUpdate }) =>
       updateCustomer(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] })
-      queryClient.invalidateQueries({ queryKey: ['customers', variables.id] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.detail(variables.id) })
     },
   })
 }
@@ -62,7 +63,7 @@ export function useDeleteCustomer() {
   return useMutation({
     mutationFn: (id: string) => deleteCustomer(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all })
     },
   })
 }
@@ -73,7 +74,7 @@ export function useRestoreCustomer() {
   return useMutation({
     mutationFn: (id: string) => restoreCustomer(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.customers.all })
     },
   })
 }

@@ -13,7 +13,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatDate, formatCurrency, calculateJobTotal } from '@/lib/utils'
+import { formatDate, formatCurrency } from '@/lib/utils'
+import { calculateWorkOrderFinancials } from '@/lib/financial-calculations'
 
 export default function VehicleDetailPage() {
   const params = useParams()
@@ -216,7 +217,11 @@ export default function VehicleDetailPage() {
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       {formatCurrency(
-                        wo.line_items ? calculateJobTotal(wo.line_items) : 0,
+                        calculateWorkOrderFinancials({
+                          lineItems: wo.line_items,
+                          overallDiscountType: wo.overall_discount_type,
+                          overallDiscountValue: wo.overall_discount_value,
+                        }).totalNet,
                         wo.currency
                       )}
                     </TableCell>

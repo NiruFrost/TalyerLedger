@@ -1,18 +1,25 @@
 'use client'
 
-import { useMemo, useCallback, useEffect } from 'react'
+import { useMemo, useCallback, useEffect, useState } from 'react'
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { Plus, Trash2, ArrowUp, ArrowDown, GripVertical } from 'lucide-react'
 import { workOrderFormSchema, type WorkOrderFormValues } from '../schemas'
-import { useCreateWorkOrder, useUpdateWorkOrder } from '../hooks/use-work-orders'
-import { syncLineItems } from '@/features/line-items/actions'
+import {
+  useCreateWorkOrderWithItems,
+  useUpdateWorkOrderWithItems,
+} from '../hooks/use-work-orders'
 import { getPaymentsTotal } from '@/features/work-orders/actions'
 import { useCustomers } from '@/features/customers/hooks/use-customers'
 import { useVehicles } from '@/features/vehicles/hooks/use-vehicles'
 import { JOB_STATUSES, PAYMENT_STATUSES, STATUS_TRANSITIONS, CURRENCIES, LINE_ITEM_CATEGORIES, INSTALLATION_STATUSES, PAYER_TYPES } from '@/lib/constants'
 import { formatCurrency } from '@/lib/utils'
+import { getUserMessage } from '@/lib/errors/app-error'
+import { queryKeys } from '@/lib/query/keys'
+import {
+  calculateWorkOrderFinancials,
+} from '@/lib/financial-calculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,7 +43,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { UnitCombobox } from '@/components/ui/unit-combobox'
 import { Separator } from '@/components/ui/separator'
-import type { WorkOrder, WorkOrderStatus, PaymentStatus, CurrencyCode, LineItemCategory, DiscountType, PayerType, LaborItem, ServicePackage } from '@/lib/types'
+import type { WorkOrder, WorkOrderStatus, CurrencyCode, LineItemCategory, DiscountType, PayerType, LaborItem, ServicePackage } from '@/lib/types'
 import { LaborItemPicker } from '@/features/labor-catalog/components/labor-item-picker'
 import { PackagePicker } from '@/features/service-packages/components/package-picker'
 
@@ -44,17 +51,6 @@ interface WorkOrderFormProps {
   defaultValues?: Partial<WorkOrder>
   onSuccess?: () => void
   onCancel?: () => void
-}
-
-function computeGross(qty: number, price: number): number {
-  return Math.round(qty * price * 100) / 100
-}
-
-function computeNet(gross: number, discType: string, discVal: number): number {
-  if (!discType || discVal <= 0) return gross
-  if (discType === 'amount') return Math.max(0, gross - discVal)
-  if (discType === 'percent') return Math.max(0, gross - (gross * discVal / 100))
-  return gross
 }
 
 const INSTALLATION_STYLE: Record<string, string> = {
@@ -67,14 +63,15 @@ const INSTALLATION_STYLE: Record<string, string> = {
 }
 
 export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderFormProps) {
-  const createWorkOrder = useCreateWorkOrder()
-  const updateWorkOrder = useUpdateWorkOrder()
+  const createWorkOrder = useCreateWorkOrderWithItems()
+  const updateWorkOrder = useUpdateWorkOrderWithItems()
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const { customers } = useCustomers()
   const { data: vehicles } = useVehicles()
   const isEditing = !!defaultValues?.id
 
   const { data: paidAmount = 0 } = useQuery({
-    queryKey: ['payments-total', defaultValues?.id],
+    queryKey: queryKeys.workOrders.paymentsTotal(defaultValues?.id),
     queryFn: () => getPaymentsTotal(defaultValues!.id!),
     enabled: !!defaultValues?.id,
   })
@@ -105,6 +102,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
             category: li.category,
             item: li.item,
             specification: li.specification || '',
+            part_number: li.part_number || '',
             installation_status: li.installation_status || '',
             quantity: li.quantity,
             unit: li.unit,
@@ -152,9 +150,12 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
 
   const selectedCustomerId = useWatch({ control, name: 'customer_id' })
   const selectedVehicleId = useWatch({ control, name: 'vehicle_id' })
-  const lineItems = useWatch({ control, name: 'line_items' }) || []
+  const lineItems = useWatch({ control, name: 'line_items' })
   const overallDiscType = useWatch({ control, name: 'overall_discount_type' })
   const overallDiscVal = useWatch({ control, name: 'overall_discount_value' })
+  const currentStatus = useWatch({ control, name: 'status' })
+  const selectedCurrency = useWatch({ control, name: 'currency' })
+  const payerType = useWatch({ control, name: 'payer_type' })
 
   useEffect(() => {
     if (selectedVehicleId && vehicles) {
@@ -170,44 +171,24 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
     : vehicles ?? []
 
   const calculations = useMemo(() => {
-    const perItem = lineItems.map((item) => {
-      const qty = Number(item?.quantity) || 0
-      const price = Number(item?.unit_price) || 0
-      const discType = item?.discount_type || ''
-      const discVal = Number(item?.discount_value) || 0
-      const gross = computeGross(qty, price)
-      const net = computeNet(gross, discType, discVal)
-      return { ...item, gross, net }
+    return calculateWorkOrderFinancials({
+      lineItems: (lineItems ?? []).map((item) => ({
+        category: item?.category ?? 'other',
+        quantity: Number(item?.quantity) || 0,
+        unit_price: Number(item?.unit_price) || 0,
+        discount_type:
+          item?.discount_type === 'amount' || item?.discount_type === 'percent'
+            ? item.discount_type
+            : null,
+        discount_value: Number(item?.discount_value) || 0,
+      })),
+      overallDiscountType:
+        overallDiscType === 'amount' || overallDiscType === 'percent'
+          ? overallDiscType
+          : null,
+      overallDiscountValue: Number(overallDiscVal) || 0,
+      paid: Number(paidAmount) || 0,
     })
-
-    const categoryTotalsMap: Record<string, number> = {}
-    perItem.forEach((item) => {
-      const cat = item.category
-      categoryTotalsMap[cat] = (categoryTotalsMap[cat] || 0) + item.net
-    })
-    const categoryTotals = Object.entries(categoryTotalsMap)
-      .filter((entry): entry is [string, number] => entry[1] > 0)
-      .map(([category, total]) => ({ category, total }))
-
-    const grandSubtotal = perItem.reduce((sum, item) => sum + item.net, 0)
-
-    const ovDiscType = overallDiscType || ''
-    const ovDiscVal = Number(overallDiscVal) || 0
-    const overallDiscount = ovDiscType === 'amount'
-      ? ovDiscVal
-      : ovDiscType === 'percent'
-        ? grandSubtotal * ovDiscVal / 100
-        : 0
-
-    const totalNetAmount = Math.max(0, grandSubtotal - overallDiscount)
-    const paid = Number(paidAmount) || 0
-    const balance = Math.max(0, totalNetAmount - paid)
-    const paymentStatus = paid <= 0 ? 'unpaid'
-      : paid < totalNetAmount ? 'partial'
-      : paid >= totalNetAmount && paid > 0 ? 'paid'
-      : 'overpaid'
-
-    return { perItem, categoryTotals, grandSubtotal, overallDiscount, totalNetAmount, paid, balance, paymentStatus }
   }, [lineItems, overallDiscType, overallDiscVal, paidAmount])
 
   const addLineItem = useCallback(() => {
@@ -215,6 +196,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
       category: 'parts',
       item: '',
       specification: '',
+      part_number: '',
       installation_status: '',
       quantity: 1,
       unit: 'pc',
@@ -227,6 +209,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
   }, [append, fields.length])
 
   async function onSubmit(data: WorkOrderFormValues) {
+    setSubmitError(null)
     const headerPayload = {
       vehicle_id: data.vehicle_id,
       customer_id: data.customer_id || null,
@@ -244,7 +227,6 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
       overall_discount_value: data.overall_discount_value || 0,
       notes: data.notes || null,
       internal_notes: data.internal_notes || null,
-      payment_status: calculations.paymentStatus as PaymentStatus,
       terms: data.terms || null,
     }
 
@@ -253,7 +235,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
       category: li.category,
       item: li.item,
       specification: li.specification || null,
-      part_number: null,
+      part_number: li.part_number || null,
       quantity: li.quantity,
       unit: li.unit,
       unit_price: li.unit_price,
@@ -266,16 +248,18 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
 
     try {
       if (isEditing && defaultValues?.id) {
-        await updateWorkOrder.mutateAsync({ id: defaultValues.id, data: headerPayload })
-        await syncLineItems(defaultValues.id, lineItemsPayload)
+        await updateWorkOrder.mutateAsync({
+          id: defaultValues.id,
+          expectedVersion: defaultValues.version ?? 1,
+          data: headerPayload,
+          lineItems: lineItemsPayload,
+        })
       } else {
-        const newWorkOrder = await createWorkOrder.mutateAsync(headerPayload)
-        if (lineItemsPayload.length > 0) {
-          await syncLineItems(newWorkOrder.id, lineItemsPayload)
-        }
+        await createWorkOrder.mutateAsync({ data: headerPayload, lineItems: lineItemsPayload })
       }
       onSuccess?.()
-    } catch {
+    } catch (error) {
+      setSubmitError(getUserMessage(error))
     }
   }
 
@@ -339,7 +323,8 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
-                value={form.watch('status')}
+                value={currentStatus}
+                disabled={!isEditing}
                 onValueChange={(value) => setValue('status', value as WorkOrderFormValues['status'])}
               >
                 <SelectTrigger>
@@ -348,7 +333,6 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                 <SelectContent>
                   {JOB_STATUSES
                     .filter((s) => {
-                      const currentStatus = form.watch('status')
                       if (!currentStatus) return true
                       const allowed = STATUS_TRANSITIONS[currentStatus as WorkOrderStatus] ?? []
                       return s.value === currentStatus || allowed.includes(s.value as WorkOrderStatus)
@@ -360,6 +344,11 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                     ))}
                 </SelectContent>
               </Select>
+              {!isEditing && (
+                <p className="text-xs text-muted-foreground">
+                  New work orders start as Draft.
+                </p>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -375,7 +364,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
           <div className="space-y-2">
             <Label htmlFor="currency">Currency</Label>
             <Select
-              value={form.watch('currency')}
+              value={selectedCurrency}
               onValueChange={(value) => setValue('currency', value as WorkOrderFormValues['currency'])}
             >
               <SelectTrigger>
@@ -394,7 +383,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
           <div className="space-y-2">
             <Label htmlFor="payer_type">Payer Type</Label>
             <Select
-              value={form.watch('payer_type')}
+              value={payerType}
               onValueChange={(value) => setValue('payer_type', value)}
             >
               <SelectTrigger>
@@ -412,7 +401,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
         </CardContent>
       </Card>
 
-      {(form.watch('payer_type') === 'insurance' || form.watch('payer_type') === 'both') && (
+      {(payerType === 'insurance' || payerType === 'both') && (
         <Card>
           <CardHeader>
             <CardTitle>Insurance Information</CardTitle>
@@ -445,6 +434,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                 category: item.category,
                 item: item.name,
                 specification: item.description || '',
+                part_number: '',
                 installation_status: '',
                 quantity: 1,
                 unit: item.unit,
@@ -461,6 +451,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                   category: pkgItem.item_type,
                   item: pkgItem.name,
                   specification: pkgItem.description || '',
+                  part_number: '',
                   installation_status: '',
                   quantity: pkgItem.quantity,
                   unit: pkgItem.unit,
@@ -487,6 +478,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                   <TableHead className="w-28">Category</TableHead>
                   <TableHead className="min-w-36">Item</TableHead>
                   <TableHead className="min-w-36">Specification</TableHead>
+                  <TableHead className="w-28">Part #</TableHead>
                   <TableHead className="w-28">Status</TableHead>
                   <TableHead className="w-16 text-right">Qty</TableHead>
                   <TableHead className="w-16">Unit</TableHead>
@@ -502,19 +494,15 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
               <TableBody>
                 {fields.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={15} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={16} className="h-24 text-center text-muted-foreground">
                       No line items. Click &quot;Add Item&quot; to begin.
                     </TableCell>
                   </TableRow>
                 ) : (
                   fields.map((field, index) => {
-                    const qty = Number(form.watch(`line_items.${index}.quantity`)) || 0
-                    const price = Number(form.watch(`line_items.${index}.unit_price`)) || 0
-                    const discType = form.watch(`line_items.${index}.discount_type`) || ''
-                    const discVal = Number(form.watch(`line_items.${index}.discount_value`)) || 0
-                    const gross = computeGross(qty, price)
-                    const net = computeNet(gross, discType, discVal)
-                    const instStatus = form.watch(`line_items.${index}.installation_status`) || ''
+                    const discType = lineItems?.[index]?.discount_type || ''
+                    const { gross, net } = calculations.lines[index] ?? { gross: 0, net: 0 }
+                    const instStatus = lineItems?.[index]?.installation_status || ''
                     const instStyle = INSTALLATION_STYLE[instStatus] || ''
 
                     return (
@@ -527,7 +515,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                         </TableCell>
                         <TableCell>
                           <Select
-                            value={form.watch(`line_items.${index}.category`)}
+                            value={lineItems?.[index]?.category}
                             onValueChange={(value) =>
                               setValue(`line_items.${index}.category`, value as LineItemCategory)
                             }
@@ -554,6 +542,12 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                           <Input
                             className="h-8 text-xs"
                             {...register(`line_items.${index}.specification`)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            className="h-8 text-xs"
+                            {...register(`line_items.${index}.part_number`)}
                           />
                         </TableCell>
                         <TableCell>
@@ -596,7 +590,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                         </TableCell>
                         <TableCell>
                           <UnitCombobox
-                            value={form.watch(`line_items.${index}.unit`)}
+                            value={lineItems?.[index]?.unit}
                             onChange={(value) => setValue(`line_items.${index}.unit`, value)}
                             className="w-20"
                           />
@@ -611,7 +605,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                           />
                         </TableCell>
                         <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                          {formatCurrency(gross, form.watch('currency'))}
+                          {formatCurrency(gross, selectedCurrency)}
                         </TableCell>
                         <TableCell>
                           <Select
@@ -640,7 +634,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                           />
                         </TableCell>
                         <TableCell className="text-right font-mono text-xs font-medium">
-                          {formatCurrency(net, form.watch('currency'))}
+                          {formatCurrency(net, selectedCurrency)}
                         </TableCell>
                         <TableCell>
                           <Input
@@ -708,7 +702,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                     return (
                       <div key={ct.category} className="flex justify-between text-sm">
                         <span>{catLabel}</span>
-                        <span className="font-mono">{formatCurrency(ct.total, form.watch('currency'))}</span>
+                        <span className="font-mono">{formatCurrency(ct.total, selectedCurrency)}</span>
                       </div>
                     )
                   })
@@ -717,7 +711,7 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
               <Separator />
               <div className="flex justify-between text-sm font-semibold">
                 <span>Grand Subtotal</span>
-                <span className="font-mono">{formatCurrency(calculations.grandSubtotal, form.watch('currency'))}</span>
+                <span className="font-mono">{formatCurrency(calculations.grandSubtotal, selectedCurrency)}</span>
               </div>
             </div>
 
@@ -758,17 +752,17 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
                 <div className="flex justify-between text-sm">
                   <span>Total Net Amount</span>
                   <span className="font-mono font-semibold">
-                    {formatCurrency(calculations.totalNetAmount, form.watch('currency'))}
+                    {formatCurrency(calculations.totalNet, selectedCurrency)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Paid</span>
-                  <span className="font-mono">{formatCurrency(calculations.paid, form.watch('currency'))}</span>
+                  <span className="font-mono">{formatCurrency(calculations.paid, selectedCurrency)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-sm font-semibold">
                   <span>Balance</span>
-                  <span className="font-mono">{formatCurrency(calculations.balance, form.watch('currency'))}</span>
+                  <span className="font-mono">{formatCurrency(calculations.balance, selectedCurrency)}</span>
                 </div>
                 <div className="flex justify-between text-sm items-center pt-1">
                   <span>Payment Status</span>
@@ -810,6 +804,8 @@ export function WorkOrderForm({ defaultValues, onSuccess, onCancel }: WorkOrderF
           </div>
         </CardContent>
       </Card>
+
+      {submitError && <p role="alert" className="text-sm text-destructive">{submitError}</p>}
 
       <div className="flex gap-2 justify-end">
         {onCancel && (

@@ -10,7 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { formatDate, formatCurrency, calculateJobTotal } from '@/lib/utils'
+import { formatDate, formatCurrency } from '@/lib/utils'
+import { calculateWorkOrderFinancials, sumMoney } from '@/lib/financial-calculations'
 
 export default function DashboardPage() {
   const { customers, isLoading: loadingCustomers } = useCustomers()
@@ -34,8 +35,14 @@ export default function DashboardPage() {
   const revenueWorkOrders = workOrders?.filter(
     (wo) => ['released', 'completed'].includes(wo.status)
   ) ?? []
-  const totalRevenue = revenueWorkOrders.reduce(
-    (sum, wo) => sum + (wo.line_items ? calculateJobTotal(wo.line_items) : 0), 0
+  const totalRevenue = sumMoney(
+    revenueWorkOrders.map((workOrder) =>
+      calculateWorkOrderFinancials({
+        lineItems: workOrder.line_items,
+        overallDiscountType: workOrder.overall_discount_type,
+        overallDiscountValue: workOrder.overall_discount_value,
+      }).totalNet
+    )
   )
 
   const recentVehicles = vehicles?.slice(0, 5) ?? []
@@ -120,7 +127,11 @@ export default function DashboardPage() {
                       <TableCell>{formatDate(wo.date)}</TableCell>
                       <TableCell className="text-right font-mono">
                         {formatCurrency(
-                          wo.line_items ? calculateJobTotal(wo.line_items) : 0,
+                          calculateWorkOrderFinancials({
+                            lineItems: wo.line_items,
+                            overallDiscountType: wo.overall_discount_type,
+                            overallDiscountValue: wo.overall_discount_value,
+                          }).totalNet,
                           wo.currency
                         )}
                       </TableCell>

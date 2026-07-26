@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useCreateServicePackage, useUpdateServicePackage } from '../hooks/use-service-packages'
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Trash2 } from 'lucide-react'
-import type { ServicePackage, ServicePackageInsert, PackageItem } from '@/lib/types'
+import type { ServicePackage, ServicePackageInsert } from '@/lib/types'
 
 const packageItemSchema = z.object({
   item_type: z.string().min(1),
@@ -42,7 +42,7 @@ export function PackageForm({ defaultValues, onSuccess, onCancel }: PackageFormP
   const updatePackage = useUpdateServicePackage()
   const isEditing = !!defaultValues
 
-  const { register, control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<PackageFormValues>({
+  const { register, control, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<PackageFormValues>({
     resolver: zodResolver(packageSchema),
     defaultValues: defaultValues ? {
       name: defaultValues.name,
@@ -66,7 +66,8 @@ export function PackageForm({ defaultValues, onSuccess, onCancel }: PackageFormP
   })
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
-  const items = watch('items')
+  const category = useWatch({ control, name: 'category' })
+  const items = useWatch({ control, name: 'items' })
 
   const computedTotal = items?.reduce((sum, item) => sum + (item.unit_price || 0) * (item.quantity || 1), 0) ?? 0
 
@@ -93,7 +94,7 @@ export function PackageForm({ defaultValues, onSuccess, onCancel }: PackageFormP
       </div>
       <div className="space-y-2">
         <Label>Category</Label>
-        <Select value={watch('category')} onValueChange={(v) => setValue('category', v)}>
+        <Select value={category} onValueChange={(v) => setValue('category', v)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             {LINE_ITEM_CATEGORIES.map((cat) => (
@@ -116,7 +117,7 @@ export function PackageForm({ defaultValues, onSuccess, onCancel }: PackageFormP
               <div className="flex-1 grid grid-cols-5 gap-2">
                 <div>
                   <Label className="text-xs">Type</Label>
-                  <Select value={watch(`items.${idx}.item_type`)} onValueChange={(v) => setValue(`items.${idx}.item_type`, v)}>
+                  <Select value={items?.[idx]?.item_type} onValueChange={(v) => setValue(`items.${idx}.item_type`, v)}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {LINE_ITEM_CATEGORIES.map((cat) => (

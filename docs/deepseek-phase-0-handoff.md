@@ -1,5 +1,11 @@
 # TalyerLedger Phase 0 — DeepSeek V4 Flash Handoff
 
+> **Handoff status:** Reviewed and superseded by the Codex Phase 0 finalization
+> records dated 2026-07-26. Retain this document as first-pass implementation
+> evidence. Use `phase-0-final-validation.md`,
+> `phase-0-completion-report.md`, and `phase-0-acceptance-matrix.md` for the
+> current decision and release gates.
+
 ## Repository State
 
 | Field | Value |
@@ -225,7 +231,7 @@
 ### BLOCKS PHASE 1
 | Issue | Why |
 |---|---|
-| None currently | Phase 0 foundation is complete enough for Phase 1 to begin |
+| Production dependency audit reports three High PostCSS findings | The final validation keeps the progression gate closed until the findings are removed and the complete CI sequence is green |
 
 ## Recommended Sol Review Order
 

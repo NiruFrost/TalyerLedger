@@ -78,7 +78,7 @@ The repository is in an **advanced state** — Phase 0, 1, and significant Phase
 |------|----------|--------|
 | `.env.local` with real Supabase creds | Med | NOT tracked by git (verified) |
 | `NEXT_PUBLIC_ALLOW_SIGN_UP` UI gate only | Med | Documented; Supabase dashboard must also disable |
-| Attachment `visibility` not enforced by RLS | Med | Documented in threat model |
+| Attachment `visibility` not enforced by RLS | Med | Fixed by Codex: private metadata/objects are owner-only |
 | Logging redaction key-name based (not values) | Low | Improved in this pass |
 | No hosted Supabase RLS verification | Med | PGlite tests cover but live verification needed |
 

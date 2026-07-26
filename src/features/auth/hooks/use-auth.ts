@@ -3,10 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { getCurrentUser, signIn, signUp, signOut } from '../actions'
+import { queryKeys } from '@/lib/query/keys'
 
 export function useUser() {
   return useQuery({
-    queryKey: ['current-user'],
+    queryKey: queryKeys.auth.currentUser,
     queryFn: getCurrentUser,
     staleTime: 5 * 60 * 1000,
   })
@@ -20,8 +21,9 @@ export function useSignIn() {
     mutationFn: ({ email, password }: { email: string; password: string }) =>
       signIn(email, password),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['current-user'] })
-      router.push('/')
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser })
+      router.replace('/')
+      router.refresh()
     },
   })
 }
@@ -41,7 +43,8 @@ export function useSignOut() {
     mutationFn: signOut,
     onSuccess: () => {
       queryClient.clear()
-      router.push('/login')
+      router.replace('/login')
+      router.refresh()
     },
   })
 }

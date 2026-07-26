@@ -52,8 +52,14 @@ export default function WorkOrderDetailPage() {
     )
   }
 
+  const currentVersion = workOrder.version
+
   async function handleStatusChange(status: string) {
-    await updateWorkOrder.mutateAsync({ id, data: { status: status as WorkOrderStatus } })
+    await updateWorkOrder.mutateAsync({
+      id,
+      expectedVersion: currentVersion,
+      status: status as WorkOrderStatus,
+    })
   }
 
   return (
@@ -72,7 +78,11 @@ export default function WorkOrderDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Select value={workOrder.status} onValueChange={handleStatusChange}>
+          <Select
+            value={workOrder.status}
+            disabled={updateWorkOrder.isPending}
+            onValueChange={handleStatusChange}
+          >
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -255,7 +265,12 @@ export default function WorkOrderDetailPage() {
           <TabsTrigger value="payments">Payments</TabsTrigger>
         </TabsList>
           <TabsContent value="line-items" className="space-y-4">
-          <LineItemTable workOrderId={id} currency={workOrder.currency} />
+          <LineItemTable
+            workOrderId={id}
+            currency={workOrder.currency}
+            overallDiscountType={workOrder.overall_discount_type}
+            overallDiscountValue={workOrder.overall_discount_value}
+          />
         </TabsContent>
         <TabsContent value="photos">
           <JobGallery workOrderId={id} />

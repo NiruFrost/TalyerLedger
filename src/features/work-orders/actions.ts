@@ -1,20 +1,31 @@
 import { createClient } from '@/lib/supabase/client'
-import { generateEstimateNumber } from '@/lib/utils'
-import { STATUS_TRANSITIONS } from '@/lib/constants'
-import type { WorkOrder, WorkOrderInsert, WorkOrderUpdate, LineItem, WorkOrderStatus } from '@/lib/types'
+import { restoreRecord, softDeleteRecord } from '@/lib/database/soft-delete'
+import { calculatePaid } from '@/lib/financial-calculations'
+import type { WorkOrder, WorkOrderInsert, WorkOrderUpdate, WorkOrderStatus } from '@/lib/types'
 
 const WORK_ORDER_SELECT = '*, vehicle:vehicles(*), customer:customers(*), line_items:line_items(*), payments:payments(*), linked_work_order:work_orders!linked_work_order_id(*)'
 
-async function getNextEstimateNo(): Promise<string> {
-  const supabase = createClient()
-  const yearStart = `${new Date().getFullYear()}-01-01`
-  const { count, error } = await supabase
-    .from('work_orders')
-    .select('*', { count: 'exact', head: true })
-    .is('deleted_at', null)
-    .gte('created_at', yearStart)
-  if (error) throw error
-  return generateEstimateNumber(count ?? 0)
+export interface WorkOrderLineInput {
+  id?: string
+  category: string
+  item: string
+  specification?: string | null
+  part_number?: string | null
+  quantity: number
+  unit: string
+  unit_price: number
+  discount_type?: string | null
+  discount_value?: number
+  installation_status?: string | null
+  notes?: string | null
+  source_url?: string | null
+  sort_order: number
+}
+
+async function requireWorkOrder(id: string): Promise<WorkOrder> {
+  const workOrder = await getWorkOrderById(id)
+  if (!workOrder) throw new Error('Work order was saved but could not be reloaded')
+  return workOrder
 }
 
 export async function getWorkOrders(): Promise<WorkOrder[]> {
@@ -26,6 +37,7 @@ export async function getWorkOrders(): Promise<WorkOrder[]> {
     .is('line_items.deleted_at', null)
     .is('payments.deleted_at', null)
     .order('created_at', { ascending: false })
+    .limit(100)
   if (error) throw error
   return data as unknown as WorkOrder[]
 }
@@ -53,130 +65,80 @@ export async function getWorkOrdersByVehicle(vehicleId: string): Promise<WorkOrd
     .is('line_items.deleted_at', null)
     .is('payments.deleted_at', null)
     .order('created_at', { ascending: false })
+    .limit(100)
   if (error) throw error
   return data as unknown as WorkOrder[]
 }
 
 export async function createWorkOrder(data: WorkOrderInsert): Promise<WorkOrder> {
-  const supabase = createClient()
-  const estimate_no = await getNextEstimateNo()
-  const { data: newWorkOrder, error } = await supabase
-    .from('work_orders')
-    .insert({ ...data, estimate_no })
-    .select('*, vehicle:vehicles(*), customer:customers(*)')
-    .single()
-  if (error) throw error
-  return newWorkOrder
+  return createWorkOrderWithItems(data, [])
 }
 
-export async function updateWorkOrder(id: string, data: WorkOrderUpdate): Promise<WorkOrder> {
+export async function createWorkOrderWithItems(
+  data: WorkOrderInsert,
+  lineItems: WorkOrderLineInput[],
+): Promise<WorkOrder> {
   const supabase = createClient()
-
-  if (data.status) {
-    const { data: current, error: fetchErr } = await supabase
-      .from('work_orders')
-      .select('status')
-      .eq('id', id)
-      .single()
-    if (fetchErr) throw fetchErr
-    const allowed = STATUS_TRANSITIONS[current.status as WorkOrderStatus] ?? []
-    if (data.status !== current.status && !allowed.includes(data.status as WorkOrderStatus)) {
-      throw new Error(`Cannot transition from '${current.status}' to '${data.status}'. Allowed: ${allowed.join(', ') || 'none (terminal)'}`)
-    }
-  }
-
-  const { data: updated, error } = await supabase
-    .from('work_orders')
-    .update(data)
-    .eq('id', id)
-    .select('*, vehicle:vehicles(*), customer:customers(*)')
-    .single()
+  const { data: id, error } = await supabase.rpc('create_work_order_with_items', {
+    order_payload: data,
+    items_payload: lineItems,
+  })
   if (error) throw error
-  return updated
+  if (typeof id !== 'string') throw new Error('Work order ID was not returned')
+  return requireWorkOrder(id)
+}
+
+export async function transitionWorkOrderStatus(
+  id: string,
+  expectedVersion: number,
+  status: WorkOrderStatus,
+): Promise<WorkOrder> {
+  const supabase = createClient()
+  const { error } = await supabase.rpc('transition_work_order_status', {
+    target_work_order_id: id,
+    expected_version: expectedVersion,
+    target_status: status,
+  })
+  if (error) throw error
+  return requireWorkOrder(id)
+}
+
+export async function updateWorkOrderWithItems(
+  id: string,
+  expectedVersion: number,
+  data: WorkOrderUpdate,
+  lineItems: WorkOrderLineInput[],
+): Promise<WorkOrder> {
+  const supabase = createClient()
+  const { data: updatedId, error } = await supabase.rpc('update_work_order_with_items', {
+    target_work_order_id: id,
+    expected_version: expectedVersion,
+    order_payload: data,
+    items_payload: lineItems,
+  })
+  if (error) throw error
+  if (typeof updatedId !== 'string') throw new Error('Updated work order ID was not returned')
+  return requireWorkOrder(updatedId)
 }
 
 export async function deleteWorkOrder(id: string): Promise<void> {
   const supabase = createClient()
-  const { error } = await supabase
-    .from('work_orders')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw error
+  await softDeleteRecord(supabase, 'work_orders', id)
 }
 
 export async function copyWorkOrder(sourceId: string): Promise<WorkOrder> {
   const supabase = createClient()
-
-  const { data: source, error: fetchErr } = await supabase
-    .from('work_orders')
-    .select('*, line_items:line_items(*)')
-    .eq('id', sourceId)
-    .is('line_items.deleted_at', null)
-    .single()
-  if (fetchErr) throw fetchErr
-
-  const estimate_no = await getNextEstimateNo()
-
-  const { data: newWorkOrder, error: insErr } = await supabase
-    .from('work_orders')
-    .insert({
-      vehicle_id: source.vehicle_id,
-      customer_id: source.customer_id,
-      payer_type: source.payer_type,
-      insurance_company: source.insurance_company,
-      insurance_policy_no: source.insurance_policy_no,
-      insurance_claim_no: source.insurance_claim_no,
-      linked_work_order_id: source.linked_work_order_id,
-      status: 'draft',
-      date: new Date().toISOString().split('T')[0],
-      prepared_by: source.prepared_by,
-      odometer: source.odometer,
-      currency: source.currency,
-      overall_discount_type: source.overall_discount_type,
-      overall_discount_value: source.overall_discount_value,
-      notes: source.notes,
-      internal_notes: source.internal_notes,
-      terms: source.terms,
-      estimate_no,
-    })
-    .select('*, vehicle:vehicles(*), customer:customers(*)')
-    .single()
-  if (insErr) throw insErr
-
-  const sourceLineItems = source.line_items as LineItem[] | undefined
-  if (sourceLineItems && sourceLineItems.length > 0) {
-    const lineItems = sourceLineItems.map((item, idx) => ({
-      work_order_id: newWorkOrder.id,
-      category: item.category,
-      item: item.item,
-      specification: item.specification,
-      part_number: item.part_number,
-      quantity: item.quantity,
-      unit: item.unit,
-      unit_price: item.unit_price,
-      line_total: item.line_total,
-      discount_type: item.discount_type,
-      discount_value: item.discount_value,
-      installation_status: item.installation_status,
-      notes: item.notes,
-      is_inventory: item.is_inventory,
-      sort_order: idx,
-    }))
-
-    const { error: liErr } = await supabase.from('line_items').insert(lineItems)
-    if (liErr) throw liErr
-  }
-
-  return newWorkOrder
+  const { data: id, error } = await supabase.rpc('copy_work_order_transactional', {
+    source_work_order_id: sourceId,
+  })
+  if (error) throw error
+  if (typeof id !== 'string') throw new Error('Copied work order ID was not returned')
+  return requireWorkOrder(id)
 }
 
 export async function restoreWorkOrder(id: string): Promise<void> {
   const supabase = createClient()
-  const { error } = await supabase
-    .from('work_orders')
-    .update({ deleted_at: null })
-    .eq('id', id)
-  if (error) throw error
+  await restoreRecord(supabase, 'work_orders', id)
 }
 
 export async function getPaymentsTotal(workOrderId: string): Promise<number> {
@@ -187,5 +149,5 @@ export async function getPaymentsTotal(workOrderId: string): Promise<number> {
     .eq('work_order_id', workOrderId)
     .is('deleted_at', null)
   if (error) throw error
-  return (data || []).reduce((sum, p) => sum + p.amount, 0)
+  return calculatePaid(data || [])
 }

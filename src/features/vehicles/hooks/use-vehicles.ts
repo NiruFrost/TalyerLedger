@@ -11,17 +11,18 @@ import {
   restoreVehicle,
 } from '../actions'
 import type { VehicleInsert, VehicleUpdate } from '@/lib/types'
+import { queryKeys } from '@/lib/query/keys'
 
 export function useVehicles() {
   return useQuery({
-    queryKey: ['vehicles'],
+    queryKey: queryKeys.vehicles.all,
     queryFn: getVehicles,
   })
 }
 
 export function useVehicle(id: string) {
   return useQuery({
-    queryKey: ['vehicles', id],
+    queryKey: queryKeys.vehicles.detail(id),
     queryFn: () => getVehicleById(id),
     enabled: !!id,
   })
@@ -29,7 +30,7 @@ export function useVehicle(id: string) {
 
 export function useVehiclesByCustomer(customerId: string) {
   return useQuery({
-    queryKey: ['vehicles', 'customer', customerId],
+    queryKey: queryKeys.vehicles.byCustomer(customerId),
     queryFn: () => getVehiclesByCustomer(customerId),
     enabled: !!customerId,
   })
@@ -41,7 +42,7 @@ export function useCreateVehicle() {
   return useMutation({
     mutationFn: (data: VehicleInsert) => createVehicle(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all })
     },
   })
 }
@@ -53,8 +54,8 @@ export function useUpdateVehicle() {
     mutationFn: ({ id, data }: { id: string; data: VehicleUpdate }) =>
       updateVehicle(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] })
-      queryClient.invalidateQueries({ queryKey: ['vehicles', variables.id] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.detail(variables.id) })
     },
   })
 }
@@ -65,7 +66,7 @@ export function useDeleteVehicle() {
   return useMutation({
     mutationFn: (id: string) => deleteVehicle(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all })
     },
   })
 }
@@ -76,7 +77,7 @@ export function useRestoreVehicle() {
   return useMutation({
     mutationFn: (id: string) => restoreVehicle(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all })
     },
   })
 }

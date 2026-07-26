@@ -9,6 +9,7 @@ import { useSignUp } from '../hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { getAuthErrorMessage } from '@/lib/errors/app-error'
 
 export function RegisterForm() {
   const signUpMutation = useSignUp()
@@ -52,37 +53,65 @@ export function RegisterForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" {...register('email')} />
+        <Input
+          id="email"
+          type="email"
+          autoComplete="email"
+          className="h-11"
+          aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? 'email-error' : undefined}
+          {...register('email')}
+        />
         {errors.email && (
-          <p className="text-sm text-red-500">{errors.email.message}</p>
+          <p id="email-error" role="alert" className="text-sm text-destructive">
+            {errors.email.message}
+          </p>
         )}
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input id="password" type="password" {...register('password')} />
+        <Input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          className="h-11"
+          aria-invalid={!!errors.password}
+          aria-describedby={errors.password ? 'password-error' : undefined}
+          {...register('password')}
+        />
         {errors.password && (
-          <p className="text-sm text-red-500">{errors.password.message}</p>
+          <p id="password-error" role="alert" className="text-sm text-destructive">
+            {errors.password.message}
+          </p>
         )}
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">Confirm Password</Label>
-        <Input id="confirmPassword" type="password" {...register('confirmPassword')} />
+        <Input
+          id="confirmPassword"
+          type="password"
+          autoComplete="new-password"
+          className="h-11"
+          aria-invalid={!!errors.confirmPassword}
+          aria-describedby={errors.confirmPassword ? 'confirm-password-error' : undefined}
+          {...register('confirmPassword')}
+        />
         {errors.confirmPassword && (
-          <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+          <p id="confirm-password-error" role="alert" className="text-sm text-destructive">
+            {errors.confirmPassword.message}
+          </p>
         )}
       </div>
 
       {signUpMutation.isError && (
-        <p className="text-sm text-red-500">
-          {signUpMutation.error instanceof Error
-            ? signUpMutation.error.message
-            : 'An error occurred'}
+        <p role="alert" className="text-sm text-destructive">
+          {getAuthErrorMessage(signUpMutation.error)}
         </p>
       )}
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <Button type="submit" className="h-11 w-full" disabled={isSubmitting}>
         {isSubmitting ? 'Creating account...' : 'Create account'}
       </Button>
 

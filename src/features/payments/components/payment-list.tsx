@@ -6,6 +6,7 @@ import { usePayments, useDeletePayment } from '../hooks/use-payments'
 import { PaymentForm } from './payment-form'
 import { PAYMENT_TYPES } from '@/lib/constants'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { calculatePaid } from '@/lib/financial-calculations'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -45,7 +46,7 @@ export function PaymentList({ workOrderId, currency = 'PHP' }: PaymentListProps)
   }
 
   const items = payments ?? []
-  const totalPayments = items.reduce((sum, p) => sum + p.amount, 0)
+  const totalPayments = calculatePaid(items)
 
   async function handleDelete() {
     if (!deleteId) return
@@ -171,7 +172,7 @@ export function PaymentList({ workOrderId, currency = 'PHP' }: PaymentListProps)
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this payment and cannot be undone.
+              This payment will be removed from active totals and retained in the audit history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

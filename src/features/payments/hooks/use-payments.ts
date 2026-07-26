@@ -3,10 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getPayments, createPayment, updatePayment, deletePayment } from '../actions'
 import type { PaymentInsert, PaymentUpdate } from '@/lib/types'
+import { queryKeys } from '@/lib/query/keys'
 
 export function usePayments(workOrderId: string) {
   return useQuery({
-    queryKey: ['payments', workOrderId],
+    queryKey: queryKeys.payments.byWorkOrder(workOrderId),
     queryFn: () => getPayments(workOrderId),
     enabled: !!workOrderId,
   })
@@ -18,8 +19,8 @@ export function useCreatePayment() {
   return useMutation({
     mutationFn: (data: PaymentInsert) => createPayment(data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['payments', variables.work_order_id] })
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.payments.byWorkOrder(variables.work_order_id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.detail(variables.work_order_id) })
     },
   })
 }
@@ -29,9 +30,9 @@ export function useUpdatePayment() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: PaymentUpdate }) => updatePayment(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payments'] })
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+    onSuccess: (payment) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.payments.byWorkOrder(payment.work_order_id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.detail(payment.work_order_id) })
     },
   })
 }
@@ -42,8 +43,8 @@ export function useDeletePayment() {
   return useMutation({
     mutationFn: ({ id }: { id: string; workOrderId: string }) => deletePayment(id),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['payments', variables.workOrderId] })
-      queryClient.invalidateQueries({ queryKey: ['work-orders'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.payments.byWorkOrder(variables.workOrderId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.detail(variables.workOrderId) })
     },
   })
 }

@@ -19,7 +19,7 @@ ALTER TABLE photos RENAME COLUMN job_id TO work_order_id;
 -- ============================================
 -- 3. RENAME linked_job_id → linked_work_order_id
 -- ============================================
-ALTER TABLE work_orders RENAME COLUMN IF EXISTS linked_job_id TO linked_work_order_id;
+ALTER TABLE work_orders RENAME COLUMN linked_job_id TO linked_work_order_id;
 
 -- ============================================
 -- 4. RECREATE INDEXES WITH NEW NAMES
@@ -202,7 +202,7 @@ CREATE TRIGGER set_attachments_created_by
 -- CREATE INDEX idx_jobs_status ON work_orders(status);
 -- CREATE INDEX idx_jobs_customer ON work_orders(customer_id);
 -- CREATE INDEX idx_jobs_vehicle ON work_orders(vehicle_id);
--- ALTER TABLE work_orders RENAME COLUMN IF EXISTS linked_work_order_id TO linked_job_id;
+-- ALTER TABLE work_orders RENAME COLUMN linked_work_order_id TO linked_job_id;
 -- ALTER TABLE photos RENAME COLUMN work_order_id TO job_id;
 -- ALTER TABLE payments RENAME COLUMN work_order_id TO job_id;
 -- ALTER TABLE line_items RENAME COLUMN work_order_id TO job_id;

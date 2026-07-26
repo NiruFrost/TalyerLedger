@@ -1,6 +1,6 @@
 export type WorkOrderStatus = 'draft' | 'estimate' | 'approved' | 'in_progress' | 'completed' | 'released' | 'closed' | 'voided'
 
-export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'refund'
+export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overpaid'
 
 export type PayerType = 'customer' | 'insurance' | 'both'
 
@@ -24,8 +24,32 @@ export type AttachmentParentType = 'vehicle' | 'work_order' | 'line_item'
 
 export type NotificationEvent = 'pickup_ready' | 'warranty_expiring' | 'payment_overdue' | 'tool_overdue' | 'scheduled_maintenance' | 'insurance_approved'
 
+export interface Workshop {
+  id: string
+  owner_id: string
+  name: string
+  timezone: string
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+  deleted_at: string | null
+}
+
+export interface WorkshopMember {
+  workshop_id: string
+  user_id: string
+  role: 'owner' | 'member'
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+  deleted_at: string | null
+}
+
 export interface Customer {
   id: string
+  workshop_id: string
   name: string
   email: string | null
   phone: string | null
@@ -40,6 +64,7 @@ export interface Customer {
 }
 
 export interface CustomerInsert {
+  workshop_id?: string
   name: string
   email?: string | null
   phone?: string | null
@@ -51,6 +76,7 @@ export type CustomerUpdate = Partial<CustomerInsert>
 
 export interface Vehicle {
   id: string
+  workshop_id: string
   customer_id: string | null
   make: string
   model: string
@@ -71,6 +97,7 @@ export interface Vehicle {
 }
 
 export interface VehicleInsert {
+  workshop_id?: string
   customer_id?: string | null
   make: string
   model: string
@@ -88,6 +115,7 @@ export type VehicleUpdate = Partial<VehicleInsert>
 
 export interface WorkOrder {
   id: string
+  workshop_id: string
   estimate_no: string
   vehicle_id: string
   customer_id: string | null
@@ -116,6 +144,7 @@ export interface WorkOrder {
   created_by: string | null
   updated_by: string | null
   deleted_at: string | null
+  version: number
   vehicle?: Vehicle | null
   customer?: Customer | null
   line_items?: LineItem[]
@@ -124,6 +153,7 @@ export interface WorkOrder {
 }
 
 export interface WorkOrderInsert {
+  workshop_id?: string
   vehicle_id: string
   customer_id?: string | null
   status?: WorkOrderStatus
@@ -152,6 +182,7 @@ export type WorkOrderUpdate = Partial<WorkOrderInsert> & { status?: WorkOrderSta
 
 export interface LineItem {
   id: string
+  workshop_id: string
   work_order_id: string
   category: LineItemCategory
   item: string
@@ -176,6 +207,7 @@ export interface LineItem {
 }
 
 export interface LineItemInsert {
+  workshop_id?: string
   work_order_id: string
   category: LineItemCategory
   item: string
@@ -198,6 +230,7 @@ export type LineItemUpdate = Partial<LineItemInsert>
 
 export interface Photo {
   id: string
+  workshop_id: string
   url: string
   thumbnail_url: string | null
   vehicle_id: string | null
@@ -216,6 +249,7 @@ export interface Photo {
 
 export interface Payment {
   id: string
+  workshop_id: string
   work_order_id: string
   date: string
   amount: number
@@ -231,6 +265,7 @@ export interface Payment {
 }
 
 export interface PaymentInsert {
+  workshop_id?: string
   work_order_id: string
   date: string
   amount: number
@@ -244,6 +279,7 @@ export type PaymentUpdate = Partial<PaymentInsert>
 
 export interface Document {
   id: string
+  workshop_id: string
   work_order_id: string
   document_type: DocumentType
   title: string | null
@@ -257,6 +293,7 @@ export interface Document {
 }
 
 export interface DocumentInsert {
+  workshop_id?: string
   work_order_id: string
   document_type: DocumentType
   title?: string | null
@@ -266,6 +303,7 @@ export interface DocumentInsert {
 
 export interface ActivityLog {
   id: string
+  workshop_id: string
   work_order_id: string
   event_type: string
   description: string
@@ -276,15 +314,22 @@ export interface ActivityLog {
 
 export interface Attachment {
   id: string
+  workshop_id: string
   parent_type: AttachmentParentType
   parent_id: string
   attachment_type: AttachmentCategory
+  file_kind: AttachmentFileType | null
   mime_type: string | null
   storage_path: string
   thumbnail_path: string | null
   caption: string | null
   file_size: number | null
   taken_at: string | null
+  visibility: 'private' | 'workshop' | 'customer'
+  original_filename: string | null
+  width: number | null
+  height: number | null
+  display_order: number
   uploaded_by: string | null
   created_at: string
   updated_at: string
@@ -297,12 +342,18 @@ export interface AttachmentInsert {
   parent_type: AttachmentParentType
   parent_id: string
   attachment_type: AttachmentCategory
+  file_kind?: AttachmentFileType | null
   mime_type?: string | null
   storage_path: string
   thumbnail_path?: string | null
   caption?: string | null
   file_size?: number | null
   taken_at?: string | null
+  visibility?: 'private' | 'workshop' | 'customer'
+  original_filename?: string | null
+  width?: number | null
+  height?: number | null
+  display_order?: number
 }
 
 export type AttachmentUpdate = Partial<AttachmentInsert> & { id: string }
@@ -323,6 +374,7 @@ export interface DashboardStats {
 
 export interface Notification {
   id: string
+  workshop_id: string
   work_order_id: string | null
   event_type: string
   title: string
@@ -330,12 +382,15 @@ export interface Notification {
   metadata: Record<string, unknown> | null
   is_read: boolean
   created_at: string
+  updated_at: string
   created_by: string | null
+  updated_by: string | null
   deleted_at: string | null
 }
 
 export interface LaborItem {
   id: string
+  workshop_id: string
   name: string
   description: string | null
   category: LineItemCategory
@@ -350,6 +405,7 @@ export interface LaborItem {
 }
 
 export interface LaborItemInsert {
+  workshop_id?: string
   name: string
   description?: string | null
   category?: LineItemCategory
@@ -362,6 +418,7 @@ export type LaborItemUpdate = Partial<LaborItemInsert>
 
 export interface ServicePackage {
   id: string
+  workshop_id: string
   name: string
   description: string | null
   category: string
@@ -376,6 +433,7 @@ export interface ServicePackage {
 }
 
 export interface ServicePackageInsert {
+  workshop_id?: string
   name: string
   description?: string | null
   category?: string
@@ -388,6 +446,7 @@ export type ServicePackageUpdate = Partial<ServicePackageInsert>
 
 export interface PackageItem {
   id: string
+  workshop_id: string
   package_id: string
   item_type: LineItemCategory
   name: string
@@ -397,9 +456,14 @@ export interface PackageItem {
   unit_price: number
   sort_order: number
   created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+  deleted_at: string | null
 }
 
 export interface PackageItemInsert {
+  workshop_id?: string
   item_type: LineItemCategory
   name: string
   description?: string | null
@@ -408,6 +472,61 @@ export interface PackageItemInsert {
   unit_price?: number
   sort_order?: number
 }
+
+export interface ActivityLogInsert {
+  workshop_id?: string
+  work_order_id: string
+  event_type: string
+  description: string
+  metadata?: Record<string, unknown> | null
+}
+
+export interface NotificationInsert {
+  workshop_id?: string
+  work_order_id?: string | null
+  event_type: string
+  title: string
+  message?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+export interface ShopSettings {
+  id: string
+  workshop_id: string
+  shop_name: string
+  address: string | null
+  contact_number: string | null
+  email: string | null
+  logo_url: string | null
+  tax_id: string | null
+  terms_conditions: string | null
+  tin: string | null
+  dti_bn: string | null
+  business_permit: string | null
+  include_photo_appendix: boolean
+  created_at: string
+  updated_at: string
+  created_by: string | null
+  updated_by: string | null
+  deleted_at: string | null
+}
+
+export interface ShopSettingsInsert {
+  workshop_id?: string
+  shop_name: string
+  address?: string | null
+  contact_number?: string | null
+  email?: string | null
+  logo_url?: string | null
+  tax_id?: string | null
+  terms_conditions?: string | null
+  tin?: string | null
+  dti_bn?: string | null
+  business_permit?: string | null
+  include_photo_appendix?: boolean
+}
+
+export type ShopSettingsUpdate = Partial<ShopSettingsInsert>
 
 // Backward-compatible type aliases
 /** @deprecated Use WorkOrder instead */

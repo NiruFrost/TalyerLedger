@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { vehicleSchema, type VehicleFormValues } from '../schemas'
 import { useCreateVehicle, useUpdateVehicle } from '../hooks/use-vehicles'
@@ -32,9 +32,9 @@ export function VehicleForm({ defaultValues, onSuccess, onCancel }: VehicleFormP
 
   const {
     register,
+    control,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
@@ -67,7 +67,7 @@ export function VehicleForm({ defaultValues, onSuccess, onCancel }: VehicleFormP
         },
   })
 
-  const selectedCustomerId = watch('customer_id')
+  const selectedCustomerId = useWatch({ control, name: 'customer_id' })
 
   async function onSubmit(data: VehicleFormValues) {
     const payload = {

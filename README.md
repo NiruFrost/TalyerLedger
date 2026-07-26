@@ -2,6 +2,17 @@
 
 A modern repair estimate, invoice, payment, and vehicle record management system for automotive and machine repair shops.
 
+## Phase 0 status
+
+The Phase 0 implementation and local verification baseline is complete. Lint,
+type checking, 50 Vitest tests, 9 migration/RLS cases, the production build,
+and desktop/mobile Playwright checks pass. Progression approval remains blocked
+by three High findings in the production dependency audit.
+
+Start with the [documentation index](docs/README.md), then review the
+[completion report](docs/phase-0-completion-report.md) and
+[final validation record](docs/phase-0-final-validation.md).
+
 ## Architecture
 
 ### Tech Stack
@@ -29,12 +40,14 @@ src/
 │   ├── (dashboard)/          # Dashboard pages (customers, vehicles, jobs, settings)
 │   └── auth/callback/        # OAuth callback route
 ├── components/
-│   ├── ui/                   # 21 shadcn/ui components
+│   ├── ui/                   # 23 shadcn/ui components
 │   ├── layout/               # Sidebar, header, dashboard shell
 │   ├── forms/                # Shared form components
+│   ├── shared/               # ErrorState, OfflineBanner
 │   └── pdf/                  # Invoice PDF components (react-pdf)
 ├── db/
-│   └── migrations/           # 8 SQL migration files
+│   ├── migrations/           # 9 SQL migration files
+│   └── tests/                # PGlite migration & RLS tests
 ├── features/                 # Feature-based modules
 │   ├── auth/                 # Authentication (login, register, logout)
 │   ├── customers/            # Customer CRUD + restore
@@ -44,19 +57,24 @@ src/
 │   ├── payments/             # Payment CRUD (deposit/regular)
 │   ├── labor-catalog/        # Labor items CRUD + picker
 │   ├── service-packages/     # Service packages CRUD + picker
-│   ├── attachments/          # Digital evidence: upload, gallery, viewer, before/after, drop-off, vehicle/job/line-item galleries
+│   ├── attachments/          # Digital evidence: upload, gallery, viewer, before/after, drop-off
 │   ├── search/               # Global search (Ctrl+K)
 │   └── settings/             # Shop settings + catalog/packages UI
 ├── hooks/                    # Shared hooks
 ├── lib/
-│   ├── supabase/             # Supabase client (browser, server, middleware)
-│   ├── storage/service.ts    # Abstracted StorageService (Supabase, ready for Cloudflare R2)
-│   ├── image/processor.ts    # Client-side image processing (resize, strip EXIF, thumbnail, validate)
+│   ├── auth/                 # Route classification & protection
+│   ├── database/             # Soft-delete utilities
+│   ├── errors/               # AppError class
+│   ├── image/                # Client-side image processing (resize, strip EXIF, thumbnail)
+│   ├── logging/              # Structured JSON logger
+│   ├── query/                # TanStack Query client & key factory
+│   ├── security/             # Rate limiter, origin check
+│   ├── storage/              # Abstracted StorageService
+│   ├── supabase/             # Supabase client (browser, server, admin, middleware)
 │   ├── types.ts              # TypeScript interfaces
 │   ├── utils.ts              # cn(), formatCurrency, formatDate, estimate_no
 │   └── constants.ts          # Enums, statuses, units, events, attachment categories
-├── middleware.ts             # Auth middleware (session refresh + redirect)
-└── proxy.ts                  # Next.js 16 proxy
+├── proxy.ts                  # Next.js 16 proxy (auth middleware)
 ```
 
 ## Database Schema
@@ -103,7 +121,7 @@ shop_settings (single row)
 - **Work orders separate from customers** — Repeat customers don't require retyping
 - **Service history timeline** — Vehicles link to all their work orders
 - **Inventory flag** — Line items can later link to stocked parts (`is_inventory` column)
-- **Auto estimate numbering** — Format: `YY-MMDD-XXXXX` (e.g., `26-0716-00001`)
+- **Atomic work-order numbering** — Format: `YY-MMDD-000001` (for example, `26-0716-000001`)
 - **Discount support** — Per-order overall discount and per-line-item discount (amount/percent)
 - **Labor Catalog** — Predefined reusable services for one-click insertion
 - **Service Packages** — Multi-line bundles (e.g., oil change, tune-up) with bulk insertion
@@ -129,6 +147,7 @@ Apply via Supabase SQL editor in order:
 6. `00006_status_workflow_internal_notes.sql` — Status workflow, internal notes
 7. `00007_notifications_labor_packages.sql` — Notifications, labor catalog, packages
 8. `00008_repair_documentation.sql` — Repair documentation & digital evidence (evolve attachments, drop-off inspection, photo appendix)
+9. `00009_phase0_tenant_security.sql` — Workshop tenant isolation, composite FKs, forced RLS, transactional RPCs, auth trigger
 
 ## Environment Variables
 
@@ -157,6 +176,18 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 | `npm run build` | Production build |
 | `npm run start` | Start production server |
 | `npm run lint` | Run ESLint |
+| `npm run typecheck` | Generate Next.js route types and run TypeScript without emitting |
+| `npm run test:run` | Run the complete Vitest suite once |
+| `npm run db:test` | Run the migration and RLS validation subset |
+| `npm run test:e2e` | Run Playwright desktop and mobile projects |
+
+## Documentation
+
+The controlled Phase 0 documentation set is indexed in
+[`docs/README.md`](docs/README.md). It includes the product requirements,
+architecture, database and RLS references, threat model, testing and operations
+guides, ADRs, acceptance evidence, risk register, final validation record, and
+project-management handoff.
 
 ## Features
 
@@ -164,7 +195,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 - [x] Authentication (login/register/logout) with Supabase SSR
 - [x] Customer CRUD with soft delete, vehicle count display
 - [x] Vehicle CRUD with customer association, cover photo
-- [x] Work Order CRUD with auto numbering (YY-MMDD-XXXXX)
+- [x] Work Order CRUD with atomic numbering (`YY-MMDD-000001`)
 - [x] Line items with auto totals, category subtotals, discount support
 - [x] Duplicate/Copy work order with line items
 - [x] Payment ledger with deposit/regular types
