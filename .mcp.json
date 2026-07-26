@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "lovelace": {
+      "command": "C:/Users/niela/AppData/Local/Lovelace/lovelace-mcp.exe",
+      "args": [],
+      "env": {
+        "LOVELACE_ROOT": "."
+      }
+    }
+  }
+}

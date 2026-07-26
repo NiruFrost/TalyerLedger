@@ -1,0 +1,44 @@
+types:
+  - name: epic
+    id_prefix: E
+    fields:
+      - name: title
+        type: string
+        required: true
+  - name: task
+    id_prefix: T
+    fields:
+      - name: title
+        type: string
+        required: true
+      - name: assignee
+        type: reference
+        refers_to: [actor]
+      - name: priority
+        type: enum
+        values_from: priorities
+  - name: bug
+    id_prefix: T
+    fields:
+      - name: title
+        type: string
+        required: true
+      - name: assignee
+        type: reference
+        refers_to: [actor]
+      - name: priority
+        type: enum
+        values_from: priorities
+
+statuses:
+  - name: backlog
+  - name: todo
+    agent: ready
+  - name: in_progress
+    agent: in_progress
+  - name: in_review
+    agent: complete
+  - name: done
+  - name: cancelled
+
+priorities: [urgent, high, medium, low]
