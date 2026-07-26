@@ -50,9 +50,10 @@ The authoritative command record is
 | `NiruFrost/Talyer-Ledger` | `codex/phase-0-finalization` | https://github.com/NiruFrost/Talyer-Ledger/pull/1 |
 | `NiruFrost/TalyerLedger` | `codex/phase-0-finalization` | https://github.com/NiruFrost/TalyerLedger/pull/1 |
 
-Commit `c3820d4` contains the implementation and controlled documentation
-baseline with a structured summary, description, validation record, and known
-gate.
+| Commit | Purpose |
+| --- | --- |
+| `c3820d4` | Implementation and controlled-documentation baseline, including the structured validation record and known gate |
+| `f414da8` | Lovelace configuration, completed-work records, prioritized residual-risk board, project orientation, and executive handoff |
 
 ## Board map
 
@@ -67,6 +68,10 @@ gate.
 | [[T-0007]] | Orphan attachment reconciliation | Backlog |
 | [[T-0008]] | Production performance measurement | Backlog |
 | [[T-0009]] | Full accessibility and reduced-motion review | Backlog |
+
+Open tickets are assigned to Niru as the default accountable repository owner.
+The database/platform, operations, engineering, and product/design execution
+roles still require named delegation before production scheduling.
 
 ## Recommended decision sequence
 

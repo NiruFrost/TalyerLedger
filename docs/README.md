@@ -67,11 +67,12 @@ when the decision changes, and correct the documentation in the same change.
 
 Read, in order:
 
-1. [Product Requirements](product-requirements.md)
-2. [Phase 0 Completion Report](phase-0-completion-report.md)
-3. [Phase 0 Acceptance Matrix](phase-0-acceptance-matrix.md)
-4. [Phase 0 Final Validation](phase-0-final-validation.md)
-5. The risk and action register in this document
+1. [Phase 0 Project Handoff](../.lovelace/documentation/phase-0-handoff.md)
+2. [Product Requirements](product-requirements.md)
+3. [Phase 0 Completion Report](phase-0-completion-report.md)
+4. [Phase 0 Acceptance Matrix](phase-0-acceptance-matrix.md)
+5. [Phase 0 Final Validation](phase-0-final-validation.md)
+6. The risk and action register in this document
 
 ### Engineer or maintainer
 
@@ -139,6 +140,7 @@ Read:
 | [Phase 0 Acceptance Matrix](phase-0-acceptance-matrix.md) | Requirement-to-evidence traceability | Product, QA, audit |
 | [Phase 0 Final Validation](phase-0-final-validation.md) | Final commands, results, limitations, and release gate | QA, release, security |
 | [Phase 0 Completion Report](phase-0-completion-report.md) | Executive decision and handoff | Product owner, project management |
+| [Lovelace Phase 0 Project Handoff](../.lovelace/documentation/phase-0-handoff.md) | Publication record, board map, residual-risk sequence, and Phase 1 boundary | Product owner, project management |
 
 ## Phase 0 deliverable summary
 
@@ -150,7 +152,7 @@ Read:
 | Reliability | Transactional numbering and work-order updates, optimistic version checks, derived financial state | `phase-0-final-validation.md`, ADR-0008 |
 | Quality | Lint, typecheck, 50 Vitest tests, 9 migration/RLS cases, build, and 2 Playwright projects pass | `phase-0-final-validation.md` |
 | Operations | Environment, deployment, backup/restore, monitoring, and performance expectations documented | Operations documents listed above |
-| Governance | Acceptance matrix, audit trail, completion decision, and explicit residual risk register | Phase 0 control documents |
+| Governance | Acceptance matrix, audit trail, completion decision, explicit residual risk register, and Lovelace board | Phase 0 control documents and `.lovelace/` |
 
 ## Validation gate
 
@@ -179,6 +181,8 @@ Read:
 
 Owners are role-based until named individuals are assigned. The project manager
 should assign names and target dates before production scheduling.
+The mirrored Lovelace tickets use Niru as the default accountable repository
+owner until those role-specific execution owners are delegated.
 
 ## Release and change control
 

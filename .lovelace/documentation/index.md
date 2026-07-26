@@ -24,7 +24,8 @@ reports three High PostCSS findings. This is tracked by [[T-0004]].
 Primary publication:
 
 - Branch: `codex/phase-0-finalization`
-- Commit: `c3820d4`
+- Phase 0 baseline commit: `c3820d4`
+- Lovelace project-management commit: `f414da8`
 - Pull request: https://github.com/NiruFrost/Talyer-Ledger/pull/1
 
 Backup publication:
@@ -61,6 +62,14 @@ are excluded from the publication branch.
 - Phase 1 changes must remain separate from the published Phase 0 branch.
 - Significant implementation work should reference its Lovelace ticket in the
   commit message.
+
+## Tooling portability
+
+The checked-in `.mcp.json` and `.claude/settings.json` retain the
+installer-generated Lovelace executable paths for the current Windows
+workstation. A collaborator using a different account, installation directory,
+or operating system must install Lovelace and refresh those commands locally
+before relying on MCP access or agent hooks.
 
 ## Immediate decisions
 
