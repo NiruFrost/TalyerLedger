@@ -22,10 +22,20 @@ ALTER TABLE attachments ADD COLUMN IF NOT EXISTS taken_at TIMESTAMPTZ;
 ALTER TABLE attachments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE attachments ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE attachments ADD COLUMN IF NOT EXISTS uploaded_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE attachments ADD COLUMN IF NOT EXISTS file_kind TEXT;
 
 -- Migrate data: copy url -> storage_path, thumbnail_url -> thumbnail_path
 UPDATE attachments SET storage_path = url WHERE storage_path IS NULL AND url IS NOT NULL;
 UPDATE attachments SET thumbnail_path = thumbnail_url WHERE thumbnail_path IS NULL AND thumbnail_url IS NOT NULL;
+UPDATE attachments SET file_kind = attachment_type WHERE file_kind IS NULL;
+
+-- The old column represented file kind. Preserve it in file_kind and initialize
+-- the new evidence category conservatively instead of rejecting existing rows.
+ALTER TABLE attachments ALTER COLUMN attachment_type DROP DEFAULT;
+UPDATE attachments
+SET attachment_type = 'other'
+WHERE attachment_type IN ('image', 'pdf', 'docx', 'xlsx', 'video');
+ALTER TABLE attachments ALTER COLUMN attachment_type SET DEFAULT 'other';
 
 -- Drop old columns
 ALTER TABLE attachments DROP COLUMN IF EXISTS url;
@@ -36,7 +46,7 @@ ALTER TABLE attachments DROP CONSTRAINT IF EXISTS attachments_parent_type_check;
 ALTER TABLE attachments DROP CONSTRAINT IF EXISTS attachments_attachment_type_check;
 
 ALTER TABLE attachments ADD CONSTRAINT attachments_parent_type_check
-  CHECK (parent_type IN ('vehicle', 'work_order', 'line_item'));
+  CHECK (parent_type IN ('vehicle', 'work_order', 'line_item', 'customer'));
 
 ALTER TABLE attachments ADD CONSTRAINT attachments_attachment_type_check
   CHECK (attachment_type IN (
@@ -45,6 +55,8 @@ ALTER TABLE attachments ADD CONSTRAINT attachments_attachment_type_check
     'authorization_letter', 'tool_condition_out', 'tool_condition_in',
     'other'
   ));
+
+ALTER TABLE attachments ALTER COLUMN storage_path SET NOT NULL;
 
 -- Add indexes for new query patterns
 CREATE INDEX IF NOT EXISTS idx_attachments_parent_type ON attachments(parent_type);

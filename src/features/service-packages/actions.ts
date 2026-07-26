@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { softDeleteRecord } from '@/lib/database/soft-delete'
 import type { ServicePackage, ServicePackageInsert, ServicePackageUpdate } from '@/lib/types'
 
 const PACKAGE_SELECT = '*, items:package_items(*)'
@@ -9,7 +10,9 @@ export async function getServicePackages(): Promise<ServicePackage[]> {
     .from('service_packages')
     .select(PACKAGE_SELECT)
     .is('deleted_at', null)
+    .is('items.deleted_at', null)
     .order('sort_order')
+    .limit(100)
   if (error) throw error
   return data as unknown as ServicePackage[]
 }
@@ -43,7 +46,10 @@ export async function updateServicePackage(id: string, data: ServicePackageUpdat
     .single()
   if (pErr) throw pErr
   if (items) {
-    await supabase.from('package_items').delete().eq('package_id', id)
+    const { error: deleteError } = await supabase.rpc('soft_delete_package_items', {
+      target_package_id: id,
+    })
+    if (deleteError) throw deleteError
     if (items.length > 0) {
       const { error: iErr } = await supabase
         .from('package_items')
@@ -56,9 +62,5 @@ export async function updateServicePackage(id: string, data: ServicePackageUpdat
 
 export async function deleteServicePackage(id: string): Promise<void> {
   const supabase = createClient()
-  const { error } = await supabase
-    .from('service_packages')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw error
+  await softDeleteRecord(supabase, 'service_packages', id)
 }

@@ -134,7 +134,7 @@ export function CustomerTable({ onEdit }: CustomerTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this customer and cannot be undone.
+              This customer will be moved out of active records and can be restored by an authorized user.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

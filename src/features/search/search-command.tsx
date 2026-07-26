@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Car, Users, FileText } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
+import { searchWorkshop } from './actions'
+import { queryKeys } from '@/lib/query/keys'
 import {
   CommandDialog,
   CommandEmpty,
@@ -18,7 +19,7 @@ export function SearchCommand() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const supabase = createClient()
+  const deferredQuery = useDeferredValue(query.trim())
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -31,33 +32,18 @@ export function SearchCommand() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [])
 
-  const { data: results } = useQuery({
-    queryKey: ['search', query],
-    queryFn: async () => {
-      if (!query || query.length < 2) return { customers: [], vehicles: [], jobs: [] }
-
-      const term = `%${query}%`
-
-      const [customersRes, vehiclesRes, jobsRes] = await Promise.all([
-        supabase.from('customers').select('id, name').ilike('name', term).is('deleted_at', null).limit(5),
-        supabase.from('vehicles').select('id, make, model, plate, vin').or(`plate.ilike.${term},vin.ilike.${term},make.ilike.${term},model.ilike.${term}`).is('deleted_at', null).limit(5),
-        supabase.from('jobs').select('id, estimate_no').ilike('estimate_no', term).is('deleted_at', null).limit(5),
-      ])
-
-      return {
-        customers: customersRes.data ?? [],
-        vehicles: vehiclesRes.data ?? [],
-        jobs: jobsRes.data ?? [],
-      }
-    },
-    enabled: query.length >= 2,
+  const { data: results, isError } = useQuery({
+    queryKey: queryKeys.search.results(deferredQuery),
+    queryFn: () => searchWorkshop(deferredQuery),
+    enabled: deferredQuery.length >= 2,
   })
 
   const handleSelect = useCallback(
     (type: string, id: string) => {
       setOpen(false)
       setQuery('')
-      router.push(`/${type}s/${id}`)
+      const route = type === 'work_order' ? `/jobs/${id}` : `/${type}s/${id}`
+      router.push(route)
     },
     [router]
   )
@@ -65,8 +51,9 @@ export function SearchCommand() {
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+        className="grid size-11 place-items-center rounded-full text-muted-foreground hover:bg-accent"
         aria-label="Search (Ctrl+K)"
       >
         <Search className="h-5 w-5" />
@@ -75,10 +62,10 @@ export function SearchCommand() {
         <CommandInput
           placeholder="Search customers, vehicles, jobs..."
           value={query}
-          onValueChange={setQuery}
+          onValueChange={(value) => setQuery(value.slice(0, 80))}
         />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandEmpty>{isError ? 'Search is unavailable. Try again.' : 'No results found.'}</CommandEmpty>
           {results && (
             <>
               {results.customers.length > 0 && (
@@ -86,7 +73,7 @@ export function SearchCommand() {
                   {results.customers.map((c) => (
                     <CommandItem key={c.id} onSelect={() => handleSelect('customer', c.id)}>
                       <Users className="mr-2 h-4 w-4" />
-                      {c.name}
+                      {c.label}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -96,17 +83,17 @@ export function SearchCommand() {
                   {results.vehicles.map((v) => (
                     <CommandItem key={v.id} onSelect={() => handleSelect('vehicle', v.id)}>
                       <Car className="mr-2 h-4 w-4" />
-                      {v.make} {v.model} — {v.plate || v.vin || 'N/A'}
+                      {v.label} — {v.detail || 'N/A'}
                     </CommandItem>
                   ))}
                 </CommandGroup>
               )}
-              {results.jobs.length > 0 && (
+              {results.workOrders.length > 0 && (
                 <CommandGroup heading="Jobs">
-                  {results.jobs.map((j) => (
-                    <CommandItem key={j.id} onSelect={() => handleSelect('job', j.id)}>
+                  {results.workOrders.map((j) => (
+                    <CommandItem key={j.id} onSelect={() => handleSelect('work_order', j.id)}>
                       <FileText className="mr-2 h-4 w-4" />
-                      {j.estimate_no}
+                      {j.label}
                     </CommandItem>
                   ))}
                 </CommandGroup>

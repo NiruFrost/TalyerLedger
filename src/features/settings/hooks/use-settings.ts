@@ -2,10 +2,11 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getShopSettings, updateShopSettings, type ShopSettingsUpdate } from '../actions'
+import { queryKeys } from '@/lib/query/keys'
 
 export function useShopSettings() {
   return useQuery({
-    queryKey: ['shop-settings'],
+    queryKey: queryKeys.settings.detail,
     queryFn: getShopSettings,
   })
 }
@@ -16,7 +17,7 @@ export function useUpdateShopSettings() {
   return useMutation({
     mutationFn: (data: ShopSettingsUpdate) => updateShopSettings(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shop-settings'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail })
     },
   })
 }

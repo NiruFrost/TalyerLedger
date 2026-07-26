@@ -25,21 +25,6 @@ export function generateEstimateNumber(currentCount: number): string {
   return `${yy}-${mm}${dd}-${String(currentCount + 1).padStart(5, '0')}`
 }
 
-export function calculateLineTotal(quantity: number, unitPrice: number): number {
-  return Math.round(quantity * unitPrice * 100) / 100
-}
-
-export function calculateJobTotal(lineItems: { line_total: number }[]): number {
-  return lineItems.reduce((sum, item) => sum + item.line_total, 0)
-}
-
-export function calculateCategoryTotals(lineItems: { category: string; line_total: number }[]) {
-  return lineItems.reduce<Record<string, number>>((acc, item) => {
-    acc[item.category] = (acc[item.category] || 0) + item.line_total
-    return acc
-  }, {})
-}
-
 export function pluralize(count: number, singular: string, plural?: string): string {
   return count === 1 ? singular : plural || `${singular}s`
 }

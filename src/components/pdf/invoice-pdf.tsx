@@ -1,4 +1,10 @@
 import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
+import {
+  calculatePaid,
+  calculateWorkOrderFinancials,
+  sumMoney,
+} from '@/lib/financial-calculations'
+import type { DiscountType } from '@/lib/types'
 
 interface JobPDFProps {
   job: {
@@ -10,6 +16,9 @@ interface JobPDFProps {
     notes?: string | null
     terms?: string | null
     currency: string
+    overall_discount_type?: DiscountType | null
+    overall_discount_value?: number | null
+    payments?: Array<{ amount: number }>
     vehicle?: {
       make: string
       model: string
@@ -32,6 +41,8 @@ interface JobPDFProps {
       unit: string
       unit_price: number
       line_total: number
+      discount_type?: DiscountType | null
+      discount_value?: number | null
     }>
   }
   shopSettings?: {
@@ -98,17 +109,23 @@ function getDocumentLabel(status: string): string {
 interface GroupedCategory {
   category: string
   label: string
-  items: NonNullable<JobPDFProps['job']['line_items']>
+  items: Array<{
+    item: NonNullable<JobPDFProps['job']['line_items']>[number]
+    net: number
+  }>
   subtotal: number
 }
 
-const groupLineItems = (items: NonNullable<JobPDFProps['job']['line_items']>): GroupedCategory[] => {
-  const groups: Record<string, NonNullable<JobPDFProps['job']['line_items']>> = {}
+const groupLineItems = (
+  items: NonNullable<JobPDFProps['job']['line_items']>,
+  lineNets: readonly number[]
+): GroupedCategory[] => {
+  const groups: Record<string, GroupedCategory['items']> = {}
 
-  for (const item of items) {
+  items.forEach((item, index) => {
     if (!groups[item.category]) groups[item.category] = []
-    groups[item.category].push(item)
-  }
+    groups[item.category].push({ item, net: lineNets[index] ?? 0 })
+  })
 
   return CATEGORY_ORDER
     .filter((cat) => groups[cat])
@@ -116,7 +133,7 @@ const groupLineItems = (items: NonNullable<JobPDFProps['job']['line_items']>): G
       category: cat,
       label: CATEGORY_LABELS[cat] || cat.charAt(0).toUpperCase() + cat.slice(1),
       items: groups[cat],
-      subtotal: groups[cat].reduce((sum, item) => sum + item.line_total, 0),
+      subtotal: sumMoney(groups[cat].map((item) => item.net)),
     }))
 }
 
@@ -468,10 +485,17 @@ const JobPDF = ({ job, shopSettings, includePhotoAppendix, attachmentUrls }: Job
     ? `${job.vehicle.year} ${job.vehicle.make} ${job.vehicle.model}`
     : null
 
-  const groupedItems = job.line_items ? groupLineItems(job.line_items) : []
-  const grandTotal = job.line_items
-    ? job.line_items.reduce((sum, item) => sum + item.line_total, 0)
-    : 0
+  const lineItems = job.line_items ?? []
+  const calculations = calculateWorkOrderFinancials({
+    lineItems,
+    overallDiscountType: job.overall_discount_type,
+    overallDiscountValue: job.overall_discount_value,
+    paid: calculatePaid(job.payments ?? []),
+  })
+  const groupedItems = groupLineItems(
+    lineItems,
+    calculations.lines.map((line) => line.net)
+  )
 
   const photoPages: { url: string; caption?: string | null; category?: string }[][] = []
   if (includePhotoAppendix && attachmentUrls && attachmentUrls.length > 0) {
@@ -554,7 +578,7 @@ const JobPDF = ({ job, shopSettings, includePhotoAppendix, attachmentUrls }: Job
               <View style={styles.categoryHeader}>
                 <Text style={styles.categoryHeaderText}>{group.label}</Text>
               </View>
-              {group.items.map((item, idx) => {
+              {group.items.map(({ item, net }, idx) => {
                 const desc = item.specification
                   ? `${item.item} - ${item.specification}${item.part_number ? ` (${item.part_number})` : ''}`
                   : item.part_number
@@ -571,7 +595,7 @@ const JobPDF = ({ job, shopSettings, includePhotoAppendix, attachmentUrls }: Job
                       {formatCurrency(item.unit_price, job.currency)}
                     </Text>
                     <Text style={[styles.lineItemText, styles.colTotal]}>
-                      {formatCurrency(item.line_total, job.currency)}
+                      {formatCurrency(net, job.currency)}
                     </Text>
                   </View>
                 )
@@ -588,14 +612,61 @@ const JobPDF = ({ job, shopSettings, includePhotoAppendix, attachmentUrls }: Job
           ))}
         </View>
 
+        {calculations.overallDiscount > 0 && (
+          <>
+            <View style={styles.subtotalRow}>
+              <Text style={[styles.subtotalLabel, { flex: 1, paddingHorizontal: 4 }]}>
+                Grand Subtotal
+              </Text>
+              <Text style={styles.subtotalAmount}>
+                {formatCurrency(calculations.grandSubtotal, job.currency)}
+              </Text>
+            </View>
+            <View style={styles.subtotalRow}>
+              <Text style={[styles.subtotalLabel, { flex: 1, paddingHorizontal: 4 }]}>
+                Overall Discount
+              </Text>
+              <Text style={styles.subtotalAmount}>
+                -{formatCurrency(calculations.overallDiscount, job.currency)}
+              </Text>
+            </View>
+          </>
+        )}
+
         <View style={styles.grandTotalRow}>
           <Text style={[styles.grandTotalLabel, { flex: 1, paddingHorizontal: 4 }]}>
-            Grand Total
+            Total Net
           </Text>
           <Text style={styles.grandTotalAmount}>
-            {formatCurrency(grandTotal, job.currency)}
+            {formatCurrency(calculations.totalNet, job.currency)}
           </Text>
         </View>
+
+        {(job.payments?.length ?? 0) > 0 && (
+          <>
+            <View style={styles.subtotalRow}>
+              <Text style={[styles.subtotalLabel, { flex: 1, paddingHorizontal: 4 }]}>Paid</Text>
+              <Text style={styles.subtotalAmount}>
+                {formatCurrency(calculations.paid, job.currency)}
+              </Text>
+            </View>
+            <View style={styles.subtotalRow}>
+              <Text style={[styles.subtotalLabel, { flex: 1, paddingHorizontal: 4 }]}>Balance</Text>
+              <Text style={styles.subtotalAmount}>
+                {formatCurrency(calculations.balance, job.currency)}
+              </Text>
+            </View>
+            <View style={styles.subtotalRow}>
+              <Text style={[styles.subtotalLabel, { flex: 1, paddingHorizontal: 4 }]}>
+                Payment Status
+              </Text>
+              <Text style={styles.subtotalAmount}>
+                {calculations.paymentStatus.charAt(0).toUpperCase()
+                  + calculations.paymentStatus.slice(1)}
+              </Text>
+            </View>
+          </>
+        )}
 
         {(job.notes || job.terms) && (
           <View style={styles.footerSection}>
@@ -642,6 +713,8 @@ const JobPDF = ({ job, shopSettings, includePhotoAppendix, attachmentUrls }: Job
           <View style={photoPageStyles.photoGrid}>
             {pagePhotos.map((photo, photoIdx) => (
               <View key={photoIdx} style={photoPageStyles.photoItem}>
+                {/* react-pdf Image is not an HTML image and has no alt prop. */}
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
                 <Image src={photo.url} style={photoPageStyles.photoImage} />
                 {photo.caption && (
                   <Text style={photoPageStyles.photoCaption}>{photo.caption}</Text>

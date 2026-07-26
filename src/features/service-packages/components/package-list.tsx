@@ -118,7 +118,7 @@ export function PackageList() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently delete this service package.</AlertDialogDescription>
+            <AlertDialogDescription>This package will be removed from the active catalog and retained for recovery.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

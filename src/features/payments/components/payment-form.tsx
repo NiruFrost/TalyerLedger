@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { paymentFormSchema, type PaymentFormValues } from '../schemas'
 import { useCreatePayment, useUpdatePayment } from '../hooks/use-payments'
@@ -44,7 +44,9 @@ export function PaymentForm({ workOrderId, defaultValues, onSuccess, onCancel }:
         },
   })
 
-  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = form
+  const { register, control, handleSubmit, setValue, formState: { errors, isSubmitting } } = form
+  const paymentMethod = useWatch({ control, name: 'payment_method' })
+  const paymentType = useWatch({ control, name: 'payment_type' })
 
   async function onSubmit(data: PaymentFormValues) {
     if (isEditing && defaultValues) {
@@ -75,7 +77,7 @@ export function PaymentForm({ workOrderId, defaultValues, onSuccess, onCancel }:
       <div className="space-y-2">
         <Label htmlFor="payment_method">Payment Method *</Label>
         <Select
-          value={watch('payment_method')}
+          value={paymentMethod}
           onValueChange={(value) => setValue('payment_method', value)}
         >
           <SelectTrigger>
@@ -98,7 +100,7 @@ export function PaymentForm({ workOrderId, defaultValues, onSuccess, onCancel }:
       <div className="space-y-2">
         <Label htmlFor="payment_type">Payment Type</Label>
         <Select
-          value={watch('payment_type')}
+          value={paymentType}
           onValueChange={(value) => setValue('payment_type', value as PaymentType)}
         >
           <SelectTrigger>

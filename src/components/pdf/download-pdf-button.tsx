@@ -5,11 +5,12 @@ import { PDFDownloadLink } from '@react-pdf/renderer'
 import { Download, Loader2 } from 'lucide-react'
 import JobPDF from './invoice-pdf'
 import { Button } from '@/components/ui/button'
-import { getAttachments } from '@/features/attachments/actions'
+import { getCustomerSafeAttachments } from '@/features/attachments/actions'
 import { storageService } from '@/lib/storage/service'
 import type { Job } from '@/lib/types'
 import type { ShopSettings } from '@/features/settings/actions'
 import { ATTACHMENT_CATEGORIES } from '@/lib/constants'
+import { queryKeys } from '@/lib/query/keys'
 
 interface DownloadPdfButtonProps {
   job: Job
@@ -36,9 +37,9 @@ export default function DownloadPdfButton({
   const includePhotos = shopSettings?.include_photo_appendix ?? false
 
   const { data: attachmentUrls } = useQuery({
-    queryKey: ['pdf-attachments', job.id],
+    queryKey: queryKeys.pdf.attachments(job.id),
     queryFn: async () => {
-      const attachments = await getAttachments('work_order', job.id)
+      const attachments = await getCustomerSafeAttachments('work_order', job.id)
       const urls = await Promise.all(
         attachments.map(async (a) => {
           try {

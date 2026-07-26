@@ -115,7 +115,7 @@ export function LaborCatalogList() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently delete this labor item.</AlertDialogDescription>
+            <AlertDialogDescription>This labor item will be removed from the active catalog and retained for recovery.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

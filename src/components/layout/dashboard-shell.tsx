@@ -22,8 +22,8 @@ export default function DashboardShell({ title, children }: DashboardShellProps)
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header title={title} onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 lg:p-6">
-          {children}
+        <main id="main-content" className="flex-1 overflow-y-auto bg-muted/30 p-4 lg:p-6">
+          <div className="route-content">{children}</div>
         </main>
       </div>
     </div>

@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable @next/next/no-img-element -- Private attachment URLs are signed and expire, so they cannot be safely routed through the Next.js image optimizer. */
 
 import { useState, useRef, useEffect } from 'react'
 import { storageService } from '@/lib/storage/service'
@@ -36,6 +37,33 @@ export function BeforeAfterComparison({ beforeAttachments, afterAttachments }: B
     setSliderPos(Math.max(0, Math.min(100, x)))
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    let nextPosition = sliderPos
+
+    switch (e.key) {
+      case 'ArrowLeft':
+      case 'ArrowDown':
+        nextPosition = Math.max(0, sliderPos - 5)
+        break
+      case 'ArrowRight':
+      case 'ArrowUp':
+        nextPosition = Math.min(100, sliderPos + 5)
+        break
+      case 'Home':
+        nextPosition = 0
+        break
+      case 'End':
+        nextPosition = 100
+        break
+      default:
+        return
+    }
+
+    e.preventDefault()
+    e.stopPropagation()
+    setSliderPos(nextPosition)
+  }
+
   if (!beforeUrl || !afterUrl) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -52,7 +80,7 @@ export function BeforeAfterComparison({ beforeAttachments, afterAttachments }: B
     return (
       <div className="space-y-3">
         <div className="flex justify-end gap-2">
-          <button onClick={() => setMode('slider')} className="text-xs text-muted-foreground hover:text-foreground">Slider View</button>
+          <button type="button" onClick={() => setMode('slider')} className="text-xs text-muted-foreground hover:text-foreground">Slider View</button>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
@@ -73,16 +101,25 @@ export function BeforeAfterComparison({ beforeAttachments, afterAttachments }: B
   return (
     <div className="space-y-3">
       <div className="flex justify-end gap-2">
-        <button onClick={() => setMode('side')} className="text-xs text-muted-foreground hover:text-foreground">Side by Side</button>
+        <button type="button" onClick={() => setMode('side')} className="text-xs text-muted-foreground hover:text-foreground">Side by Side</button>
       </div>
       <div
         ref={containerRef}
-        className="relative overflow-hidden rounded-lg select-none cursor-ew-resize"
+        className="relative overflow-hidden rounded-lg select-none cursor-ew-resize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         style={{ aspectRatio: '16/9', maxHeight: '400px' }}
+        role="slider"
+        tabIndex={0}
+        aria-label="Before and after image comparison"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(sliderPos)}
+        aria-valuetext={`${Math.round(sliderPos)}% before image visible`}
+        aria-orientation="horizontal"
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onMouseMove={handleMouseMove}
+        onKeyDown={handleKeyDown}
         onTouchStart={() => { isDragging.current = true }}
         onTouchEnd={() => { isDragging.current = false }}
         onTouchMove={(e) => {
@@ -94,13 +131,13 @@ export function BeforeAfterComparison({ beforeAttachments, afterAttachments }: B
         }}
       >
         <img src={afterUrl} alt="After" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-        <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
-          <img src={beforeUrl} alt="Before" className="absolute inset-0 w-full h-full object-cover" draggable={false} style={{ width: `${100 / (sliderPos / 100)}%` }} />
+        <div className="absolute inset-0 overflow-hidden" style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}>
+          <img src={beforeUrl} alt="Before" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
         </div>
         <div className="absolute inset-y-0" style={{ left: `${sliderPos}%`, transform: 'translateX(-50%)' }}>
           <div className="h-full w-0.5 bg-white shadow" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/90 shadow flex items-center justify-center">
-            <span className="text-xs font-bold text-gray-700">↔</span>
+            <span className="text-xs font-bold text-gray-700" aria-hidden="true">↔</span>
           </div>
         </div>
         <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">{beforeLabel}</div>

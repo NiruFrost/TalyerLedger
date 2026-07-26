@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { softDeleteRecord } from '@/lib/database/soft-delete'
 import type { LaborItem, LaborItemInsert, LaborItemUpdate } from '@/lib/types'
 
 export async function getLaborItems(): Promise<LaborItem[]> {
@@ -37,9 +38,5 @@ export async function updateLaborItem(id: string, data: LaborItemUpdate): Promis
 
 export async function deleteLaborItem(id: string): Promise<void> {
   const supabase = createClient()
-  const { error } = await supabase
-    .from('labor_items')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw error
+  await softDeleteRecord(supabase, 'labor_items', id)
 }

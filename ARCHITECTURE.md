@@ -354,7 +354,13 @@ Component → Form (react-hook-form + zodResolver)
 
 ---
 
-## 8. Phase 0 & Phase 1 Completion
+## 8. Historical Delivery Baseline
+
+> This section preserves labels from an earlier roadmap. “Phase 1 —
+> Foundation” below is a legacy checkpoint name and does not indicate approval
+> or completion of Master Build v3 Phase 1. The current Phase 0 decision is
+> maintained in `docs/phase-0-completion-report.md` and
+> `docs/phase-0-final-validation.md`.
 
 ### Phase 0 — Architecture Verification
 
@@ -381,10 +387,10 @@ Component → Form (react-hook-form + zodResolver)
 | Auth (login, logout, session, protected) | ✅ | Supabase SSR + middleware |
 | Auth proxy/middleware | ✅ | `src/middleware.ts` |
 
-### Phase 1 — Foundation
+### Phase 1 — Foundation (Legacy Roadmap Label)
 
 | Requirement | Status | Notes |
-|---|---|---|---|
+|---|---|---|
 | Login/Logout/Session/Protected | ✅ | Middleware renamed to `middleware.ts` |
 | Customer CRUD + soft delete + restore | ✅ | All operations + `restoreCustomer()` |
 | Vehicle CRUD + soft delete + restore | ✅ | All operations + `restoreVehicle()` |

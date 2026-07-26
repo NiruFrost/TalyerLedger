@@ -1,4 +1,10 @@
-import { ATTACHMENT_ACCEPTED_MIMES, ATTACHMENT_MAX_SIZE_BYTES, ATTACHMENT_FULL_WIDTH, ATTACHMENT_THUMBNAIL_WIDTH } from '@/lib/constants'
+import {
+  ATTACHMENT_ACCEPTED_MIMES,
+  ATTACHMENT_FULL_WIDTH,
+  ATTACHMENT_MAX_PIXELS,
+  ATTACHMENT_MAX_SIZE_BYTES,
+  ATTACHMENT_THUMBNAIL_WIDTH,
+} from '@/lib/constants'
 
 export interface ProcessedImage {
   file: File
@@ -23,21 +29,19 @@ export function validateImage(file: File): ValidationResult {
   return { valid: true }
 }
 
-function stripExif(ctx: CanvasRenderingContext2D, image: HTMLImageElement): void {
-  ctx.drawImage(image, 0, 0)
-}
-
-function resizeImage(image: HTMLImageElement, maxWidth: number): { canvas: HTMLCanvasElement; width: number; height: number } {
+function resizeImage(image: HTMLImageElement, maxDimension: number): { canvas: HTMLCanvasElement; width: number; height: number } {
   let { width, height } = image
-  if (width > maxWidth) {
-    height = Math.round(height * (maxWidth / width))
-    width = maxWidth
+  const longestSide = Math.max(width, height)
+  if (longestSide > maxDimension) {
+    const scale = maxDimension / longestSide
+    width = Math.round(width * scale)
+    height = Math.round(height * scale)
   }
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
   const ctx = canvas.getContext('2d')!
-  stripExif(ctx, image)
+  ctx.drawImage(image, 0, 0, width, height)
   return { canvas, width, height }
 }
 
@@ -46,6 +50,9 @@ export async function processImage(file: File): Promise<ProcessedImage> {
   if (!validation.valid) throw new Error(validation.error)
 
   const image = await loadImage(file)
+  if (image.naturalWidth * image.naturalHeight > ATTACHMENT_MAX_PIXELS) {
+    throw new Error('Image dimensions exceed the safe processing limit')
+  }
 
   const { canvas: fullCanvas, width, height } = resizeImage(image, ATTACHMENT_FULL_WIDTH)
 

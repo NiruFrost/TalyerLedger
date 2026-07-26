@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { softDeleteRecord } from '@/lib/database/soft-delete'
 import type { Attachment, AttachmentInsert, AttachmentUpdate, AttachmentParentType, AttachmentCategory } from '@/lib/types'
 
 const ATTACHMENT_SELECT = '*'
@@ -13,6 +14,24 @@ export async function getAttachments(parentType: AttachmentParentType, parentId:
     .is('deleted_at', null)
     .order('taken_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
+  if (error) throw error
+  return data as unknown as Attachment[]
+}
+
+export async function getCustomerSafeAttachments(
+  parentType: AttachmentParentType,
+  parentId: string,
+): Promise<Attachment[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('attachments')
+    .select(ATTACHMENT_SELECT)
+    .eq('parent_type', parentType)
+    .eq('parent_id', parentId)
+    .eq('visibility', 'customer')
+    .is('deleted_at', null)
+    .order('taken_at', { ascending: false, nullsFirst: false })
+    .limit(30)
   if (error) throw error
   return data as unknown as Attachment[]
 }
@@ -64,11 +83,7 @@ export async function updateAttachment(id: string, data: AttachmentUpdate): Prom
 
 export async function deleteAttachment(id: string): Promise<void> {
   const supabase = createClient()
-  const { error } = await supabase
-    .from('attachments')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw error
+  await softDeleteRecord(supabase, 'attachments', id)
 }
 
 export async function setVehicleCoverPhoto(vehicleId: string, attachmentId: string): Promise<void> {

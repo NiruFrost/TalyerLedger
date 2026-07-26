@@ -49,16 +49,20 @@ export function UnitCombobox({ value, onChange, className }: UnitComboboxProps) 
         onChange={(e) => onChange(e.target.value)}
         className="h-8 text-xs rounded-r-none"
         placeholder="Unit"
+        aria-label="Unit"
       />
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            type="button"
             variant="outline"
             size="icon"
             className="h-8 w-7 rounded-l-none border-l-0 shrink-0"
             onClick={() => setOpen(!open)}
+            aria-label="Choose unit"
+            aria-expanded={open}
           >
-            <ChevronsUpDown className="h-3 w-3" />
+            <ChevronsUpDown className="h-3 w-3" aria-hidden="true" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-40 p-0" align="start">
@@ -67,6 +71,7 @@ export function UnitCombobox({ value, onChange, className }: UnitComboboxProps) 
               placeholder="Search..."
               value={value}
               onValueChange={onChange}
+              aria-label="Search units"
             />
             <CommandList>
               <CommandEmpty>
@@ -89,6 +94,7 @@ export function UnitCombobox({ value, onChange, className }: UnitComboboxProps) 
                     onSelect={() => handleSelect(unit)}
                   >
                     <Check
+                      aria-hidden="true"
                       className={cn(
                         'mr-2 h-3 w-3',
                         value === unit ? 'opacity-100' : 'opacity-0'

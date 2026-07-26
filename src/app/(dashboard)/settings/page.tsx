@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -179,13 +179,16 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Notification Events</CardTitle>
+              <CardDescription>
+                Delivery adapters are not configured in Phase 0. These controls are read-only.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {NOTIFICATION_EVENTS.map((evt) => (
                   <div key={evt.value} className="flex items-center justify-between">
-                    <Label htmlFor={`notif-${evt.value}`} className="cursor-pointer">{evt.label}</Label>
-                    <Switch id={`notif-${evt.value}`} defaultChecked />
+                    <Label htmlFor={`notif-${evt.value}`}>{evt.label}</Label>
+                    <Switch id={`notif-${evt.value}`} checked={false} disabled aria-label={`${evt.label} unavailable`} />
                   </div>
                 ))}
               </div>

@@ -4,11 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getAttachments, getAttachmentsByCategory, createAttachment, updateAttachment, deleteAttachment, createAttachmentAndLog } from '../actions'
 import { storageService } from '@/lib/storage/service'
 import { processImage, validateImage } from '@/lib/image/processor'
+import { AppError } from '@/lib/errors/app-error'
+import { queryKeys } from '@/lib/query/keys'
 import type { AttachmentInsert, AttachmentUpdate, AttachmentParentType, AttachmentCategory } from '@/lib/types'
 
 export function useAttachments(parentType: AttachmentParentType, parentId: string) {
   return useQuery({
-    queryKey: ['attachments', parentType, parentId],
+    queryKey: queryKeys.attachments.byParent(parentType, parentId),
     queryFn: () => getAttachments(parentType, parentId),
     enabled: !!parentId,
   })
@@ -16,7 +18,7 @@ export function useAttachments(parentType: AttachmentParentType, parentId: strin
 
 export function useAttachmentsByCategory(parentType: AttachmentParentType, parentId: string) {
   return useQuery({
-    queryKey: ['attachments', parentType, parentId, 'grouped'],
+    queryKey: queryKeys.attachments.grouped(parentType, parentId),
     queryFn: () => getAttachmentsByCategory(parentType, parentId),
     enabled: !!parentId,
   })
@@ -27,7 +29,9 @@ export function useCreateAttachment() {
   return useMutation({
     mutationFn: (data: AttachmentInsert) => createAttachment(data),
     onSuccess: (result) => {
-      qc.invalidateQueries({ queryKey: ['attachments', result.parent_type, result.parent_id] })
+      qc.invalidateQueries({
+        queryKey: queryKeys.attachments.byParent(result.parent_type, result.parent_id),
+      })
     },
   })
 }
@@ -36,18 +40,29 @@ export function useUpdateAttachment() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: AttachmentUpdate }) => updateAttachment(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['attachments'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.attachments.all }),
   })
 }
 
 export function useDeleteAttachment() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, storagePath }: { id: string; storagePath?: string }) => {
-      if (storagePath) await storageService.delete(storagePath).catch(() => {})
+    mutationFn: async ({
+      id,
+      storagePath,
+    }: {
+      id: string
+      storagePath?: string
+      parentType: AttachmentParentType
+      parentId: string
+    }) => {
+      void storagePath
       await deleteAttachment(id)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['attachments'] }),
+    onSuccess: (_result, variables) =>
+      qc.invalidateQueries({
+        queryKey: queryKeys.attachments.byParent(variables.parentType, variables.parentId),
+      }),
   })
 }
 
@@ -71,9 +86,20 @@ export function useUploadAttachment() {
       logDescription?: string
     }) => {
       const validation = validateImage(file)
-      if (!validation.valid) throw new Error(validation.error)
+      if (!validation.valid) {
+        throw new AppError('VALIDATION_ERROR', validation.error)
+      }
 
-      const processed = await processImage(file)
+      let processed
+      try {
+        processed = await processImage(file)
+      } catch (error) {
+        throw new AppError(
+          'VALIDATION_ERROR',
+          error instanceof Error ? error.message : 'The image could not be processed.',
+          error,
+        )
+      }
       const ext = file.name.split('.').pop() || 'jpg'
       const timestamp = Date.now()
       const basePath = `${parentType}/${parentId}/${category}_${timestamp}`
@@ -91,11 +117,15 @@ export function useUploadAttachment() {
         parent_type: parentType,
         parent_id: parentId,
         attachment_type: category,
-        mime_type: file.type,
+        file_kind: 'image',
+        mime_type: 'image/jpeg',
         storage_path: uploadResult.path,
         thumbnail_path: thumbnailPath,
         caption: caption || null,
         file_size: processed.file.size,
+        original_filename: file.name,
+        width: processed.width,
+        height: processed.height,
         taken_at: new Date().toISOString(),
       }
 
@@ -106,7 +136,9 @@ export function useUploadAttachment() {
     },
     onSuccess: (result) => {
       if (result) {
-        qc.invalidateQueries({ queryKey: ['attachments', result.parent_type, result.parent_id] })
+        qc.invalidateQueries({
+          queryKey: queryKeys.attachments.byParent(result.parent_type, result.parent_id),
+        })
       }
     },
   })

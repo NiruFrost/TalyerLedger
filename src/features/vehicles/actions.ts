@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { restoreRecord, softDeleteRecord } from '@/lib/database/soft-delete'
 import type { Vehicle, VehicleInsert, VehicleUpdate } from '@/lib/types'
 
 export async function getVehicles(): Promise<Vehicle[]> {
@@ -61,18 +62,10 @@ export async function updateVehicle(id: string, data: VehicleUpdate): Promise<Ve
 
 export async function deleteVehicle(id: string): Promise<void> {
   const supabase = createClient()
-  const { error } = await supabase
-    .from('vehicles')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id)
-  if (error) throw error
+  await softDeleteRecord(supabase, 'vehicles', id)
 }
 
 export async function restoreVehicle(id: string): Promise<void> {
   const supabase = createClient()
-  const { error } = await supabase
-    .from('vehicles')
-    .update({ deleted_at: null })
-    .eq('id', id)
-  if (error) throw error
+  await restoreRecord(supabase, 'vehicles', id)
 }

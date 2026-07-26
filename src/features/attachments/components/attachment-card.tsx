@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable @next/next/no-img-element -- Private attachment URLs are signed and expire, so they cannot be safely routed through the Next.js image optimizer. */
 
 import { useState } from 'react'
 import { format } from 'date-fns'
@@ -43,28 +44,44 @@ export function AttachmentCard({ attachment, onView, onDeleted }: AttachmentCard
   async function handleDelete() {
     if (!deleteId) return
     try {
-      await deleteMutation.mutateAsync({ id: deleteId, storagePath: attachment.storage_path })
-      if (attachment.thumbnail_path) {
-        await storageService.delete(attachment.thumbnail_path).catch(() => {})
-      }
+      await deleteMutation.mutateAsync({
+        id: deleteId,
+        storagePath: attachment.storage_path,
+        parentType: attachment.parent_type,
+        parentId: attachment.parent_id,
+      })
     } finally {
       setDeleteId(null)
       onDeleted?.()
     }
   }
 
+  const attachmentImage = imgSrc && !loadError ? (
+    <img
+      src={imgSrc}
+      alt={attachment.caption || 'Attachment'}
+      className="h-full w-full object-cover"
+      loading="lazy"
+    />
+  ) : null
+
   return (
     <>
       <Card className="group relative overflow-hidden">
         <div className="aspect-square relative bg-muted">
-          {imgSrc && !loadError ? (
-            <img
-              src={imgSrc}
-              alt={attachment.caption || 'Attachment'}
-              className="h-full w-full object-cover cursor-pointer"
-              onClick={() => onView?.(attachment)}
-              loading="lazy"
-            />
+          {attachmentImage ? (
+            onView ? (
+              <button
+                type="button"
+                className="block h-full w-full cursor-pointer p-0"
+                onClick={() => onView(attachment)}
+                aria-label={`View ${attachment.caption || 'attachment'}`}
+              >
+                {attachmentImage}
+              </button>
+            ) : (
+              attachmentImage
+            )
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground text-sm p-2 text-center">
               {loadError ? 'Load failed' : 'Loading...'}
@@ -75,12 +92,12 @@ export function AttachmentCard({ attachment, onView, onDeleted }: AttachmentCard
               {category?.label || attachment.attachment_type}
             </span>
           </div>
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-            <Button variant="secondary" size="icon" className="h-7 w-7" onClick={handleDownload}>
-              <Download className="h-3 w-3" />
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex gap-1">
+            <Button type="button" variant="secondary" size="icon" className="h-7 w-7" onClick={handleDownload} aria-label={`Download ${attachment.caption || 'attachment'}`}>
+              <Download className="h-3 w-3" aria-hidden="true" />
             </Button>
-            <Button variant="secondary" size="icon" className="h-7 w-7 text-red-500" onClick={() => setDeleteId(attachment.id)}>
-              <Trash2 className="h-3 w-3" />
+            <Button type="button" variant="secondary" size="icon" className="h-7 w-7 text-red-500" onClick={() => setDeleteId(attachment.id)} aria-label={`Delete ${attachment.caption || 'attachment'}`}>
+              <Trash2 className="h-3 w-3" aria-hidden="true" />
             </Button>
           </div>
         </div>

@@ -9,10 +9,11 @@ import {
   reorderLineItems,
 } from '../actions'
 import type { LineItemInsert, LineItemUpdate } from '@/lib/types'
+import { queryKeys } from '@/lib/query/keys'
 
 export function useLineItems(workOrderId: string) {
   return useQuery({
-    queryKey: ['line-items', workOrderId],
+    queryKey: queryKeys.lineItems.byWorkOrder(workOrderId),
     queryFn: () => getLineItemsByWorkOrder(workOrderId),
     enabled: !!workOrderId,
   })
@@ -24,8 +25,8 @@ export function useCreateLineItem() {
   return useMutation({
     mutationFn: (data: LineItemInsert) => createLineItem(data),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['line-items', data.work_order_id] })
-      queryClient.invalidateQueries({ queryKey: ['work-orders', data.work_order_id] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lineItems.byWorkOrder(data.work_order_id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.detail(data.work_order_id) })
     },
   })
 }
@@ -37,8 +38,8 @@ export function useUpdateLineItem() {
     mutationFn: ({ id, data }: { id: string; data: LineItemUpdate }) =>
       updateLineItem(id, data),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['line-items', data.work_order_id] })
-      queryClient.invalidateQueries({ queryKey: ['work-orders', data.work_order_id] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lineItems.byWorkOrder(data.work_order_id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.detail(data.work_order_id) })
     },
   })
 }
@@ -49,8 +50,8 @@ export function useDeleteLineItem() {
   return useMutation({
     mutationFn: ({ id }: { id: string; workOrderId: string }) => deleteLineItem(id),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['line-items', variables.workOrderId] })
-      queryClient.invalidateQueries({ queryKey: ['work-orders', variables.workOrderId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lineItems.byWorkOrder(variables.workOrderId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders.detail(variables.workOrderId) })
     },
   })
 }
@@ -62,7 +63,7 @@ export function useReorderLineItems() {
     mutationFn: (items: { id: string; sort_order: number }[]) =>
       reorderLineItems(items),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['line-items'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.lineItems.all })
     },
   })
 }

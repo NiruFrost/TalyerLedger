@@ -2,13 +2,24 @@
 
 **Project:** TalyerLedger
 **Date:** July 16, 2026
-**Status:** ✅ All requirements verified — ready for Phase 1
+**Status:** Historical checkpoint — superseded by the 2026-07-26 final validation
+
+> This report preserves the July 16 architecture checkpoint. It does not
+> represent the current release decision. Use
+> `docs/phase-0-final-validation.md`,
+> `docs/phase-0-completion-report.md`, and
+> `docs/phase-0-acceptance-matrix.md` for the authoritative Phase 0 outcome.
+> The current progression decision is not approved because the production
+> dependency audit reports three High findings.
 
 ---
 
 ## Overview
 
-Complete architecture audit of the TalyerLedger codebase. Every requirement from the Phase 0 checklist was verified against the actual codebase state. Missing or incomplete items were implemented before Phase 1 approval.
+This report records the initial architecture audit of the TalyerLedger
+codebase. It reflects the repository at that checkpoint; later security,
+tenancy, migration, test, and operational finalization work is documented in
+the controlled Phase 0 documentation set.
 
 ---
 

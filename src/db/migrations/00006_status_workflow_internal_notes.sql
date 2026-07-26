@@ -18,6 +18,14 @@ ALTER TABLE work_orders
 
 CREATE INDEX IF NOT EXISTS idx_work_orders_payment_status ON work_orders(payment_status);
 
+-- Preserve payment meaning from the retired workflow before status values change.
+UPDATE work_orders
+SET payment_status = CASE status::text
+  WHEN 'paid' THEN 'paid'
+  WHEN 'partially_paid' THEN 'partial'
+  ELSE 'unpaid'
+END;
+
 -- ============================================
 -- 3. REPLACE status ENUM
 -- Old: draft, estimate, approved, invoiced, partially_paid, paid, closed, voided
@@ -28,6 +36,9 @@ CREATE TYPE work_order_status AS ENUM (
   'draft', 'estimate', 'approved', 'in_progress',
   'completed', 'released', 'closed', 'voided'
 );
+
+ALTER TABLE work_orders
+  ALTER COLUMN status DROP DEFAULT;
 
 ALTER TABLE work_orders
   ALTER COLUMN status TYPE work_order_status

@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useCreateLaborItem, useUpdateLaborItem } from '../hooks/use-labor-items'
@@ -31,7 +31,7 @@ export function LaborItemForm({ defaultValues, onSuccess, onCancel }: LaborItemF
   const updateItem = useUpdateLaborItem()
   const isEditing = !!defaultValues
 
-  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<LaborItemFormValues>({
+  const { register, control, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<LaborItemFormValues>({
     resolver: zodResolver(laborItemSchema),
     defaultValues: {
       name: defaultValues?.name || '',
@@ -40,6 +40,7 @@ export function LaborItemForm({ defaultValues, onSuccess, onCancel }: LaborItemF
       unit: defaultValues?.unit || 'service',
     },
   })
+  const category = useWatch({ control, name: 'category' })
 
   async function onSubmit(data: LaborItemFormValues) {
     const payload = { ...data, category: data.category as LineItemCategory }
@@ -60,7 +61,7 @@ export function LaborItemForm({ defaultValues, onSuccess, onCancel }: LaborItemF
       </div>
       <div className="space-y-2">
         <Label>Category</Label>
-        <Select value={watch('category')} onValueChange={(v) => setValue('category', v)}>
+        <Select value={category} onValueChange={(v) => setValue('category', v)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             {LINE_ITEM_CATEGORIES.map((cat) => (

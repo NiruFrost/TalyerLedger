@@ -1,0 +1,74 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Users/niela/AppData/Local/Lovelace/lovelace-agent.exe digest"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Users/niela/AppData/Local/Lovelace/lovelace-agent.exe session-check"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Users/niela/AppData/Local/Lovelace/lovelace-agent.exe guard"
+          }
+        ],
+        "matcher": "Edit|Write"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Users/niela/AppData/Local/Lovelace/lovelace-agent.exe presence-start"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Users/niela/AppData/Local/Lovelace/lovelace-agent.exe presence-clear"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Users/niela/AppData/Local/Lovelace/lovelace-agent.exe track-active"
+          }
+        ],
+        "matcher": "mcp__lovelace__set_active_ticket"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Users/niela/AppData/Local/Lovelace/lovelace-agent.exe presence-beat"
+          }
+        ]
+      }
+    ]
+  }
+}

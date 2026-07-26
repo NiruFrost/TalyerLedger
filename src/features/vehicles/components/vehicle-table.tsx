@@ -142,7 +142,7 @@ export function VehicleTable({ onEdit }: VehicleTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this vehicle and cannot be undone.
+              This vehicle will be moved out of active records and can be restored by an authorized user.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

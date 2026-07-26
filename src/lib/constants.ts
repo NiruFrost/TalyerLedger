@@ -10,12 +10,12 @@ export const JOB_STATUSES = [
 ] as const
 
 export const STATUS_TRANSITIONS: Record<string, string[]> = {
-  draft: ['estimate'],
-  estimate: ['approved'],
-  approved: ['in_progress'],
-  in_progress: ['completed'],
-  completed: ['released'],
-  released: ['closed'],
+  draft: ['estimate', 'voided'],
+  estimate: ['approved', 'voided'],
+  approved: ['in_progress', 'voided'],
+  in_progress: ['completed', 'voided'],
+  completed: ['released', 'voided'],
+  released: ['closed', 'voided'],
   closed: [],
   voided: [],
 } as const
@@ -41,7 +41,7 @@ export const PAYMENT_STATUSES = [
   { value: 'unpaid', label: 'Unpaid', color: 'text-red-600 bg-red-50 border-red-200' },
   { value: 'partial', label: 'Partial', color: 'text-amber-600 bg-amber-50 border-amber-200' },
   { value: 'paid', label: 'Paid', color: 'text-green-600 bg-green-50 border-green-200' },
-  { value: 'refund', label: 'Refund', color: 'text-blue-600 bg-blue-50 border-blue-200' },
+  { value: 'overpaid', label: 'Overpaid', color: 'text-blue-600 bg-blue-50 border-blue-200' },
 ] as const
 
 export const CURRENCIES = [
@@ -111,8 +111,11 @@ export const ATTACHMENT_PARENT_TYPES = [
 export const ATTACHMENT_ACCEPTED_MIMES = ['image/jpeg', 'image/png', 'image/webp']
 export const ATTACHMENT_MAX_SIZE_MB = 10
 export const ATTACHMENT_MAX_SIZE_BYTES = ATTACHMENT_MAX_SIZE_MB * 1024 * 1024
+// Leaves room for multipart framing under Vercel's 4.5 MB Function payload limit.
+export const ATTACHMENT_SERVER_UPLOAD_MAX_SIZE_BYTES = 4 * 1024 * 1024
 export const ATTACHMENT_THUMBNAIL_WIDTH = 400
 export const ATTACHMENT_FULL_WIDTH = 1920
+export const ATTACHMENT_MAX_PIXELS = 40_000_000
 
 export const ACTIVITY_EVENTS = [
   'work_order_created',
@@ -138,7 +141,7 @@ export const NOTIFICATION_EVENTS = [
   { value: 'insurance_approved', label: 'Insurance Approved' },
 ] as const
 
-export const ESTIMATE_NO_PATTERN = 'YY-MMDD-XXXXX'
+export const ESTIMATE_NO_PATTERN = 'YY-MMDD-000001'
 
 export const SITE_NAME = 'TalyerLedger'
 export const SITE_DESCRIPTION = 'Repair estimate, invoice, and vehicle record management system'
